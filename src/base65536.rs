@@ -69,8 +69,8 @@ fn bytes_to_floats(bytes: Vec<u8>) -> Vec<f32> {
     assert!(bytes.len() % 2 == 0);
     for i in (0..bytes.len()).step_by(2) {
         let f16 = u16::from_be_bytes([bytes[i], bytes[i + 1], ]);
-        println!("{} {} {} {}", bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]);
-        exit(1);
+        //println!("{} {} {} {}", bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]);
+        //exit(1);
         floats.push(f16_to_f32(f16));
     }
     for f in &floats {

@@ -324,13 +324,22 @@ impl Game<WIDTH> for Connect4 {
     type Features = [f32; WIDTH  * HEIGHT];
     fn features(&self) -> Self::Features {
         let mut s  = [ 0.0f32; WIDTH  * HEIGHT];
-        let mut maps = [self.my_bb, self.op_bb];
-        for i in 0..2 {
-            while maps[i] != 0 {
-                let r = maps[i].trailing_zeros();
-                maps[i] ^= 1 << r;
-                let nn_ind = r as usize * 2 + i;
-                s[nn_ind] = 1.0f32
+        for row in 0..HEIGHT {
+            for col in 0..WIDTH {
+                let index = 1 << (row + HEIGHT * col);
+                if self.my_bb & index != 0 {
+                    s[row * WIDTH + col] = 1.0;
+                } else if self.op_bb & index != 0 {
+                    s[row * WIDTH + col] = -1.0;
+                } else {
+                    s[row * WIDTH + col] = -0.1;
+                }
+            }
+        }
+        for col in 0..WIDTH {
+            let h = self.height[col] as usize;
+            if h < HEIGHT {
+                s[h * WIDTH + col] = 0.1;
             }
         }
         s

@@ -1,7 +1,7 @@
 use std::process::exit;
 
 use policies::{Policy, Connect4Net, NNPolicy};
-use connect4::Connect4;
+use connect4::{Connect4, Game};
 use base65536::{load_1d, load_2d, f16_to_f32, f32_to_bf16};
 use weights::*;
 mod connect4;
@@ -27,5 +27,7 @@ fn main() {
     load_1d(&mut policy.l_4.bias, String::from(PARAMETERS[7]));
     load_2d(&mut policy.l_5.weight, String::from(PARAMETERS[8]));
     load_1d(&mut policy.l_5.bias, String::from(PARAMETERS[9]));
-
+    let c4 = Connect4::new();
+    let (a, b) = policy.eval(&c4);
+    print!("alma");
 }

@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::connect4::Connect4;
 use crate::nn::{Linear, ReLU, Activation, Softmax};
 use crate::connect4::Game;
@@ -32,7 +34,17 @@ impl NNPolicy<Connect4, { Connect4::MAX_NUM_ACTIONS }> for Connect4Net {
     }
 
     fn forward(&self, xs: &[f32; ((Connect4::DIMS[2] as usize) * (Connect4::DIMS[3] as usize))]) -> ([f32;Connect4::MAX_NUM_ACTIONS], [f32;3]) {
-        let a = ReLU.apply_1d(&self.l_1.forward(&xs));
+        let a = self.l_1.forward(&xs);
+        /*for f in self.l_1.weight {
+            for ff in f {
+                println!("{}", ff);
+            }
+            //println!("{}", f);
+        }*/
+        for ff in a {
+            println!("{}", ff);
+        }
+        panic!("a");
         let b = ReLU.apply_1d(&self.l_2.forward(&a));
         let c = ReLU.apply_1d(&self.l_3.forward(&b));
         let d = ReLU.apply_1d(&self.l_4.forward(&c));
