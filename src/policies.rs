@@ -48,10 +48,7 @@ impl NNPolicy<Connect4, { Connect4::MAX_NUM_ACTIONS }> for Connect4Net {
         let d = ReLU.apply_1d(&self.l_4.forward(&c));
         let e = &self.l_5.forward(&d);
 
-        for ff in e {
-            println!("{}", ff);
-        }
-        panic!("a");
+      
 
         let mut policy_logits: [f32; 9] = [0f32; 9];
         let mut outcome_logits: [f32; 3]= [0f32; 3];

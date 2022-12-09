@@ -29,5 +29,8 @@ fn main() {
     load_1d(&mut policy.l_5.bias, String::from(PARAMETERS[9]));
     let c4 = Connect4::new();
     let (a, b) = policy.eval(&c4);
-    print!("alma");
+
+    for ff in a {
+        println!("{}", ff);
+    }
 }
