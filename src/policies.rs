@@ -34,21 +34,25 @@ impl NNPolicy<Connect4, { Connect4::MAX_NUM_ACTIONS }> for Connect4Net {
     }
 
     fn forward(&self, xs: &[f32; ((Connect4::DIMS[2] as usize) * (Connect4::DIMS[3] as usize))]) -> ([f32;Connect4::MAX_NUM_ACTIONS], [f32;3]) {
-        let a = self.l_1.forward(&xs);
+        let a = ReLU.apply_1d(&self.l_1.forward(&xs));
         /*for f in self.l_1.weight {
             for ff in f {
                 println!("{}", ff);
             }
             //println!("{}", f);
         }*/
-        for ff in a {
-            println!("{}", ff);
-        }
-        panic!("a");
+       
         let b = ReLU.apply_1d(&self.l_2.forward(&a));
+        
         let c = ReLU.apply_1d(&self.l_3.forward(&b));
         let d = ReLU.apply_1d(&self.l_4.forward(&c));
         let e = &self.l_5.forward(&d);
+
+        for ff in e {
+            println!("{}", ff);
+        }
+        panic!("a");
+
         let mut policy_logits: [f32; 9] = [0f32; 9];
         let mut outcome_logits: [f32; 3]= [0f32; 3];
         policy_logits.copy_from_slice(&e[0..9]);
