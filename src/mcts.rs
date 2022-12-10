@@ -1,7 +1,7 @@
 use crate::config::{ActionSelection, Exploration, Fpu, MCTSConfig, PolicyNoise};
 use crate::connect4::{Game, Outcome};
 use crate::policies::Policy;
-
+use std::{time::Instant};
 
 type NodeId = u32;
 type ActionId = u8;
@@ -136,6 +136,8 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
     }
 
     pub fn explore_n(&mut self, n: usize) {
+
+       
         for _ in 0..n {
             // NOTE this is important for value extraction because if root is solved then children might not have any visits
             if self.node(self.root).solution.is_some() {
@@ -144,6 +146,18 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             self.explore();
         }
     }
+
+    pub fn explore_until(&mut self, endt: Instant) {
+        while Instant::now() < endt {
+            // NOTE this is important for value extraction because if root is solved then children might not have any visits
+            if self.node(self.root).solution.is_some() {
+                break;
+            }
+            self.explore();
+        }
+    }
+
+
 }
 
 impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {

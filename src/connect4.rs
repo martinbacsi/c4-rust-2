@@ -209,7 +209,7 @@ impl std::hash::Hash for Connect4 {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Column(u8);
+pub struct Column(pub u8);
 
 impl From<usize> for Column {
     fn from(x: usize) -> Self {
@@ -347,10 +347,10 @@ impl Game<WIDTH> for Connect4 {
 
     fn print(&self) {
         if self.is_over() {
-            println!("{:?} won", self.winner());
+            eprintln!("{:?} won", self.winner());
         } else {
-            println!("{:?} to play", self.player);
-            println!(
+            eprintln!("{:?} to play", self.player);
+            eprintln!(
                 "Available Actions: {:?}",
                 self.iter_actions().collect::<Vec<Column>>()
             );
@@ -364,7 +364,7 @@ impl Game<WIDTH> for Connect4 {
         for row in (0..HEIGHT).rev() {
             for col in 0..WIDTH {
                 let index = 1 << (row + HEIGHT * col);
-                print!(
+                eprint!(
                     "{} ",
                     if self.my_bb & index != 0 {
                         my_char
@@ -375,7 +375,7 @@ impl Game<WIDTH> for Connect4 {
                     }
                 );
             }
-            println!();
+            eprintln!();
         }
     }
 }
