@@ -135,6 +135,19 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         mcts
     }
 
+    pub fn update_with_action(&mut self, a: u8) {
+        let r = self.node(self.root);
+        for c in r.first_child..r.last_child() {
+            if self.node(c).action == a {
+                self.root = c;
+                return;
+            }
+
+        }
+
+        panic!("{}", a);
+    }
+
     pub fn explore_n(&mut self, n: usize) {
 
        

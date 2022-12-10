@@ -63,6 +63,8 @@ fn main() {
     let mut input_line = String::new();
     io::stdin().read_line(&mut input_line).unwrap();
     let mut my_last: i32 = -1;
+    let mut mcts =
+        MCTS::with_capacity(1000000, mcts_cfg, &mut policy, c4.clone());
     for i in 0..65 {
         io::stdin().read_line(&mut input_line).unwrap();
         for _ in 0..7 as usize {
@@ -82,7 +84,8 @@ fn main() {
             endt = Instant::now() + Duration::from_millis(100);
         }
         if my_last != -1 {
-            c4.step(&Column::from(my_last as usize));
+            //c4.step(&Column::from(my_last as usize));
+            mcts.update_with_action(my_last as u8);
             //self.update_with_action(my_last as u8);
         }
 
@@ -90,18 +93,20 @@ fn main() {
         if input_line != "STEAL" {
             let opp_action = parse_input!(input_line, i32);
             if opp_action >= 0 {
-                c4.step(&Column::from(opp_action as usize));
+                mcts.update_with_action(opp_action as u8);
+                //c4.step(&Column::from(opp_action as usize));
             }
             if opp_action == -1 {
                 hard_coded = 1;
-                c4.step(&Column::from(hard_coded as usize));
+                mcts.explore_n(1);
+                mcts.update_with_action(hard_coded  as u8);
+                //c4.step(&Column::from(hard_coded as usize));
                 my_last = -1;
             } else if i == 0 {
                 hard_coded = -2;
             }
         }
-        let mut mcts =
-        MCTS::with_capacity(20000, mcts_cfg, &mut policy, c4.clone());
+        
 
     // explore
         mcts.explore_until(endt);
