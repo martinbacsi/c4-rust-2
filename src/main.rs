@@ -105,7 +105,7 @@ fn main() {
 
     // explore
         mcts.explore_until(endt);
-
+       
         let mut a = mcts.best_action(ActionSelection::NumVisits);
         //c4.step(&a) ;
         if hard_coded >= 0 {
@@ -120,7 +120,7 @@ fn main() {
             my_last = aa as i32;
         }
         let aa: usize = a.into();
-        c4.print();
+        //c4.print();
         println!("{}", aa);
 
     }

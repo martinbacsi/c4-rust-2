@@ -155,6 +155,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             }
             self.explore();
         }
+        eprintln!("root visits: {}", self.nodes[self.root as usize].num_visits);
     }
 
 
