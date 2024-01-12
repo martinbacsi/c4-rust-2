@@ -5,3 +5,6 @@
 .cargo
 .idea
 Cargo.lock
+latest.pt
+test.pt
+.vs/*
