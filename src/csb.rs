@@ -1,14 +1,14 @@
-use rand;
+use rand::{self, RngCore};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use std::ops::Sub;
 
-const LEFT_ACC: usize = 0;
-const LEFT_MOVE: usize = 1;
+const RIGHT_ACC: usize = 0;
+const RIGHT_MOVE: usize = 1;
 const STRAIGHT_ACC: usize = 2;
 const STRAIGHT_MOVE: usize = 3;
-const RIGHT_ACC: usize = 4;
-const RIGHT_MOVE: usize = 5;
+const LEFT_ACC: usize = 4;
+const LEFT_MOVE: usize = 5;
 
 const MAX_SPEED: f32 = 650.0;
 
@@ -59,7 +59,7 @@ impl Pod {
             pos: V2D::new( rand::thread_rng().gen_range(0.0..16000.0), rand::thread_rng().gen_range(0.0..9000.0)),
             angle: rand::thread_rng().gen_range(0.0..359.0),
             v: V2D::new(rand::thread_rng().gen_range(0.0..MAX_SPEED as f32), 0.0),
-            time: 100,
+            time: 200,
             cp: 0,
         };
         pod.v.rotate(rand::thread_rng().gen_range(0.0..359.0));
@@ -81,12 +81,11 @@ impl Pod {
         }
 
         if a == RIGHT_ACC || a == RIGHT_MOVE {
+            //println!("right") ;
             self.angle = self.angle + 18.0;
         }
 
-        self.angle = ((self.angle + 360.) as i64 % 360) as f32;
-
-        if a % 2 == 0 {
+        if a == LEFT_ACC || a == RIGHT_ACC || a == STRAIGHT_ACC {
             let ra = self.angle.to_radians();
             let thrust = 100.0;
             self.v.x = self.v.x + ra.cos() * thrust;
@@ -100,26 +99,29 @@ impl Pod {
         self.pos.x = self.pos.x.round();
     }
 
-       fn move_pod(&mut self) {
+    fn move_pod(&mut self) {
         let t = 1.0;
         self.pos.x = (self.pos.x + self.v.x * t).round();
         self.pos.y = (self.pos.y + self.v.y * t).round();
     }
 
-    fn encode(&self, map: &Vec<V2D>) -> [f32; 10] {
+    fn encode(&self, map: &Vec<V2D>) -> [f32; 11] {
         let next_cp = self.pos - map[self.cp % map.len()];
-        let next_next_cp = self.pos -  map[(self.cp + 1) % map.len()];
+        let mut next_next_id = if self.cp + 1 == map.len() * 3 { self.cp } else {self.cp + 1};
+        next_next_id = next_next_id % map.len() ;
+        let next_next_cp = self.pos -  map[next_next_id];
 
-        let inputs: [f32; 10] = [
-            self.angle as f32 / 360.0,
+        let inputs: [f32; 11] = [
+            self.angle.to_radians().sin(),
+            self.angle.to_radians().cos(),
             self.v.x as f32 / MAX_SPEED,
             self.v.y as f32 / MAX_SPEED,
-            self.pos.x as f32 / 16000.0,
-            self.pos.y as f32 / 9000.0,
-            next_cp.x as f32 / 16000.0,
-            next_cp.y as f32 / 9000.0,
-            next_next_cp.x as f32 / 16000.0,
-            next_next_cp.y as f32 / 9000.0,
+            self.pos.x as f32 / 30000.0,
+            self.pos.y as f32 / 30000.0,
+            next_cp.x as f32 / 30000.0,
+            next_cp.y as f32 / 30000.0,
+            next_next_cp.x as f32 / 30000.0,
+            next_next_cp.y as f32 / 30000.0,
             self.cp as f32 / 100.
         ];
 
@@ -133,7 +135,7 @@ fn collision2(p1: V2D, p2: V2D, v1: V2D, v2: V2D, is_cp: bool) -> f32 {
     }
 
     let sr2 = if is_cp { 357604.0 } else { 640000.0 };
-    //let sr2 = if is_cp { 1500.0*1500.0 } else { 640000.0 };
+    //let sr2 = if is_cp { 1500.0 * 1500.0 } else { 640000.0 };
 
     let dp = p1 - p2;
     let dv = v1 - v2;
@@ -168,9 +170,9 @@ pub struct CSB_Game {
 
 impl CSB_Game {
     const ACTION_SPACE: usize = 6;
-    const STATE_SIZE: usize = 10;
+    const STATE_SIZE: usize = 11;
 
-    pub fn encode(&self) ->  [f32; 10]  {
+    pub fn encode(&self) ->  [f32; 11]  {
        self.pod.encode(&self.map)
     }
 
@@ -191,8 +193,13 @@ impl CSB_Game {
             vec![ (10323, 3366), (11203, 5425),(7259, 6656),(5425, 2838),],
         ];
         let chosen_map = maps.choose(&mut rand::thread_rng()).unwrap();
-        let chosen_map_v2d: Vec<V2D> = chosen_map.iter().map(|&(x, y)| V2D::new(x as f32, y as f32) ).collect();
-        let mut game = CSB_Game {
+        let mut chosen_map_v2d: Vec<V2D> = chosen_map.iter().map(|&(x, y)| V2D::new(x as f32, y as f32) ).collect();
+
+        if rand::thread_rng().next_u32() % 2 == 0{
+            chosen_map_v2d.reverse();
+        }
+
+        let game = CSB_Game {
             action_space: Self::ACTION_SPACE,
             state_size: Self::STATE_SIZE,
             pod: Pod::new(),
@@ -201,7 +208,7 @@ impl CSB_Game {
         game
     }
 
-    pub fn step(&mut self, a: usize) -> ([f32; 10], f32, bool) {
+    pub fn step(&mut self, a: usize) -> ([f32; 11], f32, bool) {
         self.pod.apply(a);
 
         let cp = self.map[self.pod.cp % self.map.len()];
@@ -209,7 +216,7 @@ impl CSB_Game {
 
         if collision2(self.pod.pos, cp, self.pod.v, V2D::new(0.0, 0.0), true) < 1.0 {
             self.pod.cp += 1;
-            self.pod.time = 100;
+            self.pod.time = 200;
             reward = 1.0;
         }
 
@@ -219,10 +226,6 @@ impl CSB_Game {
         self.pod.time -= 1;
         let done = self.pod.time < 0 || self.pod.cp == self.map.len() * 3;
         let next_state = self.pod.encode(&self.map);
-
-        if self.pod.cp == self.map.len() * 3 {
-            reward += 10.0;
-        }
 
         (next_state, reward, done)
     }
