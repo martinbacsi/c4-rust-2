@@ -1,0 +1,43 @@
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+use crate::{fish::*};
+// Assuming you already have the FishType and Game structs from the previous examples
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct Scan {
+    pub fish_id: i32,
+    pub fish_type: FishType,
+    pub color: i32,
+}
+
+impl Scan {
+    pub fn new_from_fish(fish: &Fish) -> Scan {
+        Scan {
+            fish_id: fish.id,
+            fish_type: fish.fish_type.clone(),
+            color: fish.color,
+        }
+    }
+
+    pub fn new_from_type_color(fish_type: FishType, color: i32) -> Scan {
+        Scan {
+            fish_id: -1, // Assuming -1 when not obtained from a specific fish
+            fish_type,
+            color,
+        }
+    }
+
+    pub fn to_input_string(&self) -> String {
+        self.fish_id.to_string()
+    }
+
+    fn to_string(&self) -> String {
+        format!(
+            "{} ({}) {} ({})",
+            Game::COLORS[self.color as usize],
+            self.color,
+            self.fish_type.to_string().to_lowercase(),
+            self.fish_type as usize
+        )
+    }
+}

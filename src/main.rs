@@ -3,6 +3,17 @@ use tch::{nn, Device, Tensor, nn::OptimizerConfig, nn::Adam, nn::VarStore, nn::O
 
 mod csb;
 mod visu;
+mod game;
+mod ugly;
+mod entity;
+mod scan;
+mod vector;
+mod fish;
+mod drone;
+mod collision;
+mod player;
+mod closest;
+mod referee;
 
 use visu::Visualizer;
 
