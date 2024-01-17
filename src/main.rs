@@ -11,7 +11,6 @@ use rand::prelude::*;
 
 const LEARNING_RATE: f64 = 0.0003;
 const GAMMA: f64 = 0.98;
-const LAMBDA: f64 = 0.95;
 const EPS_CLIP: f32 = 0.1;
 const K_EPOCH: usize = 3;
 
@@ -24,45 +23,106 @@ struct TrainItem {
     probability: f32,
 }
 
-struct PPO {
+struct Actor {
     fc0: nn::Linear,
     fc1: nn::Linear,
+    fc2: nn::Linear,
+    fc3: nn::Linear,
+    fc4: nn::Linear,
+    fc_pi: nn::Linear,
+}
+
+impl Actor {
+    fn run(&self, x: &Tensor) -> Tensor {       
+        let x = x 
+           .flat_view()
+           .apply(&self.fc0)
+           .relu()
+           .apply(&self.fc1)
+           .relu()
+           .apply(&self.fc2)
+           .relu()
+           .apply(&self.fc3)
+           .relu()
+           .apply(&self.fc4)
+           .relu();
+       let pi = x.apply(&self.fc_pi).softmax(-1, tch::Kind::Float);
+       pi
+   } 
+}
+struct Critic {
+    fc0: nn::Linear,
+    fc1: nn::Linear,
+    fc2: nn::Linear,
+    fc3: nn::Linear,
+    fc4: nn::Linear,
     fc_v: nn::Linear,
-    fc_a: nn::Linear,
+}
+
+impl Critic {
+    fn run(&self, x: &Tensor) -> Tensor {       
+        let x = x 
+           .flat_view()
+           .apply(&self.fc0)
+           .relu()
+           .apply(&self.fc1)
+           .relu()
+           .apply(&self.fc2)
+           .relu()
+           .apply(&self.fc3)
+           .relu()
+           .apply(&self.fc4)
+           .relu();
+       let v = x.apply(&self.fc_v);
+       v
+   } 
+}
+struct PPO {
+    actor: Actor,
+    cricic: Critic,
     optimizer: nn::Optimizer<nn::Adam>,
-    vs: VarStore,
-    data: Vec<TrainItem>,  
+    data: Vec<TrainItem>,
+    vs: VarStore
 }
 
 impl PPO {
     fn new() -> PPO {
         let mut vs = VarStore::new(tch::Device::Cpu);
         let root = &vs.root();
-        let mut ppo = PPO
+        let actor = Actor 
         {
-            fc0: nn::linear(root / "c_fc0", 11, 128, Default::default()),
-            fc1: nn::linear(root / "c_fc1", 128, 128, Default::default()),
-            fc_a: nn::linear(root / "c_fc_a", 128, 6, Default::default()),
-            fc_v: nn::linear(root / "c_fc_v", 128, 1, Default::default()),
-            optimizer: nn::Adam::default().build(&vs, LEARNING_RATE).unwrap(),
-            vs: vs,
-            data: Vec::new()
+            fc0: nn::linear(root / "a_fc0", 11, 16, Default::default()),
+            fc1: nn::linear(root / "a_fc1", 16, 32, Default::default()),
+            fc2: nn::linear(root / "a_fc2", 32,32, Default::default()),
+            fc3: nn::linear(root / "a_fc3", 32, 128, Default::default()),
+            fc4: nn::linear(root / "a_fc4", 128, 128, Default::default()),
+            fc_pi: nn::linear(root / "a_fc_pi", 128, 6, Default::default()),
         };
-        //ppo.vs.load("latest.pt").expect("failed to load");
-        ppo
+
+        let cricic = Critic 
+        {
+            fc0: nn::linear(root / "c_fc0", 11, 16, Default::default()),
+            fc1: nn::linear(root / "c_fc1", 16, 32, Default::default()),
+            fc2: nn::linear(root / "c_fc2", 32,32, Default::default()),
+            fc3: nn::linear(root / "c_fc3", 32, 128, Default::default()),
+            fc4: nn::linear(root / "c_fc4", 128, 128, Default::default()),
+            fc_v: nn::linear(root / "c_fc_v", 128, 1, Default::default()),
+        };
+
+        let optimizer = nn::Adam::default().build(&vs, LEARNING_RATE).unwrap();
+     
+        vs.load("model_0.ot").expect("failed to load");
+        
+        PPO { actor, cricic, optimizer, data: Vec::new(), vs }
     }
 
-    fn run(&self, x: &Tensor) -> (Tensor, Tensor) {       
-        let x = x 
-        //.flat_view()
-        .apply(&self.fc0)
-        .relu()
-        .apply(&self.fc1)
-        .relu();
-        let v = x.apply(&self.fc_v);
-        let a = x.apply(&self.fc_a).softmax(-1, tch::Kind::Float);
-        (a, v)
+    fn pi(&self, x: &Tensor) -> Tensor {       
+        self.actor.run(x)
     } 
+
+    fn v(&self, x: &Tensor) -> Tensor{       
+        self.cricic.run(x)
+    }
 
     fn put_data(&mut self, transition: TrainItem) {
         self.data.push(transition);
@@ -107,53 +167,41 @@ impl PPO {
 
     fn train_net(&mut self) {
         let (s, a, r, s_prime, done_mask, prob_a) = self.make_batch();
-        let old_log_probs = prob_a.log();
-       
-        let mut discounted_sum: f32 = 0.0; 
-        let mut returns_list = Vec::new();
         
-        let old_rewards = &r * &done_mask;
-        unsafe {
-            let numel = old_rewards.numel();
-            let d_ptr = old_rewards.data_ptr() as *const f32;
-            for i in 0..numel {
-                discounted_sum = ((GAMMA) as f32) * discounted_sum + *d_ptr.offset((numel -  i - 1) as isize);
-                returns_list.push(discounted_sum);
+        for _ in 0..K_EPOCH {         
+            let td_target = &r + &self.v(&s_prime).detach() * done_mask.detach();
+           
+            let delta = (&td_target - &self.v(&s)).detach();
+           
+            //(&r + &self.v(&s_prime)).print();
+            let mut advantage: f32 = 0.0; 
+            let mut advantage_list = Vec::new();
+
+            unsafe {
+                let numel = delta.numel();
+                let d_ptr = delta.data_ptr() as *const f32;
+                for i in 0..numel {
+                    advantage = ((GAMMA) as f32) * advantage + *d_ptr.offset((numel -  i - 1) as isize);
+                    advantage_list.push(advantage);
+                }
             }
-        }
-        
-        returns_list.reverse();
-        // Initialize advantage.
-        let returns = Tensor::of_slice(&returns_list).view([-1]);
-        let returns_norm = (&returns - &returns.mean(tch::Kind::Float)) / (&returns.std(true) + 1e-8);
-     
-        for _ in 0..K_EPOCH {   
-            let (probs, values) = self.run(&s);
-            let advantage = &returns_norm - &values.detach();
-            let new_probs = probs.gather(1, &a,     false);    
-            //pi.print();
-            let ratio = (&new_probs.log() - &old_log_probs).exp();
-            //ratio.print();
-            let surr1 = &ratio * &advantage;        
-            let surr2 = ratio.clamp((1.0 - EPS_CLIP) as f64, (1.0 + EPS_CLIP) as f64) * &advantage;      
+            advantage_list.reverse();
+            // Initialize advantage.
+            let advantage_tensor = Tensor::of_slice(&advantage_list).view([-1]);
             
-            let epsilon = 1e-8;
-            let probs_clamped = new_probs.clamp(epsilon, 1.0 - epsilon);
-            let entropy_per_row = -&probs_clamped* probs_clamped.log( );
-            let entropy = entropy_per_row.sum1(&[1], true, tch::Kind::Double);
+            let pi = &self.pi(&s);
+            let pi_a = pi.gather(1, &a, false);    
+            
+            let ratio = (&pi_a.log() - &prob_a.log()).exp();
 
-
-            let actor_loss = -&surr1.min1(&surr2).mean(tch::Kind::Float);// + entropy.mean(tch::Kind::Float) * 0.01;
-            
-            let critic_loss = (&returns_norm - &values).pow(2).mean(tch::Kind::Float);
-          
-            let loss = actor_loss + critic_loss;
-            
+            let surr1 = &ratio * &advantage_tensor;        
+            let surr2 = ratio.clamp((1.0 - EPS_CLIP) as f64, (1.0 + EPS_CLIP) as f64) * &advantage_tensor;
+            let l1 =  (&self.v(&s) - &td_target.detach()).pow(2.0).mean(tch::Kind::Float);
+            let loss = (-surr1.min1(&surr2)).mean(tch::Kind::Float) + l1;
             self.optimizer.zero_grad();
-
             loss.backward();
             self.optimizer.step();
-        
+            self.vs.save("model_0.ot");
         }
     }
 }
@@ -195,17 +243,15 @@ fn main() {
                 visu.draw(&env);
                 visu.update();
             }
-            let (pi, v) = model.run(&Tensor::of_slice(&s).view([1, 11]));
-
-            //pi.print();
-
+            
+            let pi = model.pi(&Tensor::of_slice(&s).view([1, 11]));
+         
             unsafe {
                 let pi_ptr = pi.data_ptr() as *const f32;
                 for i in 0..6 {
                     probs[i] = *pi_ptr.offset(i as isize);
                 }
             }
-            //pi.print();
             let a = categorical_sample(&probs);
             let (s_prime, r, d) = env.step(a);
             //println!("{}", a);
@@ -228,13 +274,12 @@ fn main() {
         }
         scores.push( env.pod.cp  as f64 / (env.map.len() as f64 * 3.0));
 
-        model.train_net();
         if scores.len() >= 100 {
             println!("iter:{}. score: {}, laptime: {}", n_epi, scores.iter().sum::<f64>() / scores.len() as f64, laps.iter().sum::<f64>() / laps.len() as f64);
             scores.clear();
             laps.clear();
+        }
             
-            model.vs.save("latest.pt");
-        }        
+        model.train_net();
     }
 }
