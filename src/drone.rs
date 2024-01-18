@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{player::*, vector::*, scan::*, entity::*};
+use crate::{player::*, vector::*, scan::*, entity::*, game::*};
 
 // Assuming you already have the Vector, Player, and Scan structs from the previous examples
 
@@ -81,16 +81,16 @@ impl Drone {
     }
 
     pub fn drain_battery(&mut self) {
-        self.battery -= 1; // Assuming LIGHT_BATTERY_COST is 1
+        self.battery -= Game::LIGHT_BATTERY_COST; // Assuming LIGHT_BATTERY_COST is 1
     }
 
     pub fn recharge_battery(&mut self) {
-        if self.battery < 100 {
-            self.battery += 1; // Assuming DRONE_BATTERY_REGEN is 1
+        if self.battery < Game::DRONE_MAX_BATTERY {
+            self.battery += Game::DRONE_BATTERY_REGEN; // Assuming DRONE_BATTERY_REGEN is 1
         }
 
-        if self.battery >= 100 {
-            self.battery = 100;
+        if self.battery >= Game::DRONE_MAX_BATTERY {
+            self.battery = Game::DRONE_MAX_BATTERY;
         }
     }
 
@@ -108,15 +108,5 @@ impl Drone {
 
     pub fn get_speed(&self) -> Vector {
         self.speed
-    }
-
-    
-
-
-    pub fn set_message(&mut self, message: String) {
-        self.message = message;
-        if let Some(trimmed_message) = self.message.get(..48) {
-            self.message = trimmed_message.to_string();
-        }
     }
 }

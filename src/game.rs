@@ -124,8 +124,8 @@ impl Game {
     pub const MAX_TURNS: i32 = 201;
 
 
-    pub const DRONES_PER_PLAYER: i32 = 2;
-    pub const ENABLE_UGLIES: bool = false;
+    pub const DRONES_PER_PLAYER: i32 = 1;
+    pub const ENABLE_UGLIES: bool = true;
     pub const FISH_WILL_FLEE: bool = false;
     pub const FISH_WILL_MOVE: bool = true;
     pub const SIMPLE_SCANS: bool = true;
@@ -304,6 +304,7 @@ impl Game {
                         drone.die_at = col;
                         //self.drones_eaten += 1;
                         // If two uglies hit the drone, let's just keep the first collision, it matters not.
+                        //println!("drone was eaten");
                         break;
                     }
                 }
@@ -493,7 +494,7 @@ impl Game {
         }
     }
 
-    fn perform_game_update(&mut self, frame_idx: i32) {
+    pub fn perform_game_update(&mut self, frame_idx: i32) {
         self.clear_player_info();
         self.do_batteries();
 

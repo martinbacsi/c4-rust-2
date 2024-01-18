@@ -234,9 +234,19 @@ fn categorical_sample(probs: &[f32; 6]) -> usize {
 }
 
 fn main() {
-    let game = Game::new();
+    let mut game = Game::new();
 
-    for f in game.fishes {
+    for f in &game.fishes {
+
+            println!("{} {}", f.pos.x, f.pos.y);
+        
+    }
+    for i in 0..200 {
+         game.perform_game_update(i);
+    }
+   
+    println!("......................");
+    for f in &game.fishes {
 
             println!("{} {}", f.pos.x, f.pos.y);
         
