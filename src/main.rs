@@ -234,7 +234,13 @@ fn categorical_sample(probs: &[f32; 6]) -> usize {
 }
 
 fn main() {
-    Game::new();
+    let game = Game::new();
+
+    for f in game.fishes {
+
+            println!("{} {}", f.pos.x, f.pos.y);
+        
+    }
     //let model2 = tch::CModule::load("C:\\csb\\test.pt").expect("badge");
     //print!(model2);
     //panic!();

@@ -68,7 +68,7 @@ fn snap_to_fish_zone(fish: &mut Fish) {
 pub struct Game {
     random: rand::prelude::ThreadRng,
     pub players: Vec<Player>,
-    fishes: Vec<Fish>,
+    pub fishes: Vec<Fish>,
     uglies: Vec<Ugly>,
     first_to_scan: HashMap<Scan, i32>,
     first_to_scan_temp: HashMap<Scan, i32>,
@@ -176,12 +176,12 @@ impl Game {
 
 
     fn init_uglies(&mut self) {
-        let ugly_count = if Game::ENABLE_UGLIES { 1 + self.random.gen::<i32>() % 3 } else { 0 };
+        let ugly_count = if Game::ENABLE_UGLIES { 1 + self.random.gen::<u32>() % 3 } else { 0 };
 
         for _ in 0..ugly_count {
-            let x = self.random.gen::<i32>() % (Game::WIDTH / 2.0) as i32;
+            let x = self.random.gen::<u32>() % (Game::WIDTH / 2.0) as u32;
 
-            let y = (Game::HEIGHT / 2.0) as i32 + self.random.gen::<i32>() % (Game::HEIGHT / 2.0) as i32;
+            let y = (Game::HEIGHT / 2.0) as u32 + self.random.gen::<u32>() % (Game::HEIGHT / 2.0) as u32;
             for k in 0..2 {
                 let mut ugly = Ugly::new(x as f64, y as f64, self.entity_count);
                 if k == 1 {
@@ -207,7 +207,8 @@ impl Game {
                 let mut high_y = Game::HEIGHT as i32;
 
                 while !position_found {
-                    x = self.random.gen::<i32>() % (Game::WIDTH - Game::FISH_X_SPAWN_LIMIT * 2.0) as i32 + Game::FISH_X_SPAWN_LIMIT as i32;
+                    x = self.random.gen::<u32>() % (Game::WIDTH - Game::FISH_X_SPAWN_LIMIT * 2.0) as u32 + Game::FISH_X_SPAWN_LIMIT as u32;
+                    eprintln!("{}", (Game::WIDTH - Game::FISH_X_SPAWN_LIMIT * 2.0));
                     if type_idx == 0 {
                         y = (1.0 * Game::HEIGHT / 4.0) as i32 + Game::FISH_SPAWN_MIN_SEP as i32;
                         low_y = (1.0 * Game::HEIGHT / 4.0) as i32;
@@ -221,7 +222,7 @@ impl Game {
                         low_y = (3.0 * Game::HEIGHT / 4.0) as i32;
                         high_y = (4.0 * Game::HEIGHT / 4.0) as i32;
                     }
-                    y += self.random.gen::<i32>() % (Game::HEIGHT / 4.0 - Game::FISH_SPAWN_MIN_SEP * 2.0) as i32;
+                    y += (self.random.gen::<u32>() % (Game::HEIGHT / 4.0 - Game::FISH_SPAWN_MIN_SEP * 2.0) as u32) as i32;
 
                     let final_x = x;
                     let final_y = y;
@@ -234,7 +235,7 @@ impl Game {
                 }
                 let mut f = Fish::new(x as f64, y as f64, &FishType::variants()[type_idx], col, self.entity_count, low_y, high_y);
 
-                let snapped = (self.random.gen::<i32>() % 7) as f64 * std::f64::consts::FRAC_PI_4;
+                let snapped = (self.random.gen::<u32>() % 7) as f64 * std::f64::consts::FRAC_PI_4;
                 let direction = Vector::new(snapped.cos(), snapped.sin());
 
                 if Game::FISH_WILL_MOVE {
