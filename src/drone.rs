@@ -1,18 +1,18 @@
 use std::collections::HashSet;
 
-use crate::{player::*, vector::*, scan::*};
+use crate::{player::*, vector::*, scan::*, entity::*};
 
 // Assuming you already have the Vector, Player, and Scan structs from the previous examples
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Drone {
     pub id: i32,
-    pub owner: Player,
+    pub owner: i32,
     pub pos: Vector,
     pub speed: Vector,
     pub light: i32,
     pub battery: i32,
-    pub scans: Vec<Scan>,
+    pub scans: HashSet<Scan>,
     pub fishes_scanned_this_turn: HashSet<i32>,
     pub light_switch: bool,
     pub light_on: bool,
@@ -24,18 +24,39 @@ pub struct Drone {
     pub max_turns_spent_with_scan: i32,
     pub turns_spent_with_scan: i32,
     pub max_y: i32,
+    pub move_command: Option<Vector>
+}
+
+impl Entity for Drone {
+    fn get_pos(&self) -> Vector {
+        self.pos
+    }
+
+    fn get_speed(&self) -> Vector {
+        self.speed
+    }
+}
+
+impl Entity for &Drone {
+    fn get_pos(&self) -> Vector {
+        self.pos
+    }
+
+    fn get_speed(&self) -> Vector {
+        self.speed
+    }
 }
 
 impl Drone {
-    fn new(x: f64, y: i32, id: i32, owner: Player) -> Drone {
+    pub fn new(x: f64, y: f64, id: i32, owner: &Player) -> Drone {
         Drone {
             id,
-            owner,
-            pos: Vector::new(x, y as f64),
+            owner: owner.get_index(),
+            pos: Vector::new(x, y),
             speed: Vector::ZERO,
             light: 0,
             battery: 100, // Assuming initial battery value
-            scans: Vec::new(),
+            scans: HashSet::new(),
             fishes_scanned_this_turn: HashSet::new(),
             light_switch: false,
             light_on: false,
@@ -47,11 +68,12 @@ impl Drone {
             max_turns_spent_with_scan: 0,
             turns_spent_with_scan: 0,
             max_y: 0,
+            move_command: Option::None
         }
     }
 
     pub fn is_engine_on(&self) -> bool {
-        self.speed != Vector::ZERO
+        self.speed.x != 0.0 || self.speed.y != 0.0
     }
 
     pub fn is_light_on(&self) -> bool {
@@ -84,13 +106,12 @@ impl Drone {
         self.pos.y
     }
 
-    pub fn scan_slot_to_string(&self, i: usize) -> String {
-        if let Some(scan) = self.scans.get(i) {
-            scan.to_input_string()
-        } else {
-            "-1 -1".to_string()
-        }
+    pub fn get_speed(&self) -> Vector {
+        self.speed
     }
+
+    
+
 
     pub fn set_message(&mut self, message: String) {
         self.message = message;

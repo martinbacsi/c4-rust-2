@@ -1,6 +1,6 @@
 use std::f64;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone )]
 pub struct Vector {
     pub x: f64,
     pub y: f64,
@@ -20,10 +20,41 @@ impl Vector {
         }
     }
 
+    pub fn sqr_euclidean_to(&self, other: Vector) -> f64 {
+        let dx = self.x - other.x;
+        let dy = self.y - other.x;
+        dx * dx + dy * dy
+    }
+
     pub fn from_angle(angle: f64) -> Vector {
         Vector {
             x: angle.cos(),
             y: angle.sin(),
+        }
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.x == 0.0 && self.y == 0.0
+    }
+
+    pub fn hsymmetric(&self, center: f64) -> Vector {
+        Vector {
+            x: 2.0 * center - self.x,
+            y: self.y,
+        }
+    }
+
+    pub fn vsymmetric(&self, center: f64) -> Vector {
+        Vector {
+            x: self.x,
+            y: 2.0 * center - self.y,
+        }
+    }
+
+    pub fn epsilon_round(&self) -> Vector {
+        Vector {
+            x: (self.x * 1e7).round() / 1e7,
+            y: (self.y * 1e7).round() / 1e7,
         }
     }
 
@@ -56,7 +87,7 @@ impl Vector {
         ((v.x - self.x).powi(2) + (v.y - self.y).powi(2)).sqrt()
     }
 
-    pub fn in_range(&self, v: Vector, range: f64) -> bool {
+    pub fn in_range(&self, v: &Vector, range: f64) -> bool {
         (v.x - self.x).powi(2) + (v.y - self.y).powi(2) <= range.powi(2)
     }
 

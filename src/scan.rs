@@ -1,9 +1,9 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use crate::{fish::*};
+use crate::{fish::*, game::Game};
 // Assuming you already have the FishType and Game structs from the previous examples
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Scan {
     pub fish_id: i32,
     pub fish_type: FishType,
@@ -29,15 +29,5 @@ impl Scan {
 
     pub fn to_input_string(&self) -> String {
         self.fish_id.to_string()
-    }
-
-    fn to_string(&self) -> String {
-        format!(
-            "{} ({}) {} ({})",
-            Game::COLORS[self.color as usize],
-            self.color,
-            self.fish_type.to_string().to_lowercase(),
-            self.fish_type as usize
-        )
     }
 }

@@ -15,6 +15,9 @@ mod player;
 mod closest;
 mod referee;
 
+use game::Game;
+
+
 use visu::Visualizer;
 
 use crate::csb::CSB_Game;
@@ -231,6 +234,7 @@ fn categorical_sample(probs: &[f32; 6]) -> usize {
 }
 
 fn main() {
+    Game::new();
     //let model2 = tch::CModule::load("C:\\csb\\test.pt").expect("badge");
     //print!(model2);
     //panic!();
