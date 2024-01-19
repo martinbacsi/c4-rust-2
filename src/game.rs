@@ -9,16 +9,24 @@ use crate::{ugly::*, fish::*, player::*, scan::*, vector::*, collision::*, entit
 
 
 fn update_ugly_target(ugly: &mut Ugly, players: &[Player]) -> bool {
-    let mut targetable_drones = players
-        .iter()
-        .flat_map(|p| p.drones.iter().filter(|drone| {
-            drone.pos.in_range(&ugly.pos, if drone.is_light_on() { Game::LIGHT_SCAN_RANGE } else { Game::DARK_SCAN_RANGE })
-                && !drone.is_dead_or_dying()
-        }))
-        .peekable();
+    let mut targetable_drones = Vec::new();
 
-    if targetable_drones.peek().is_some() {
-        let closest_targets = get_closest_to(ugly.pos, &mut targetable_drones);
+    for p in players {
+        for d in &p.drones {
+            //assert!(!d.is_dead_or_dying());
+            //assert!(!d.is_light_on());
+            eprintln!("{}", d.pos.distance(ugly.pos));
+            if d.pos.in_range(&ugly.pos, if d.is_light_on() { Game::LIGHT_SCAN_RANGE } else { Game::DARK_SCAN_RANGE })
+                && !d.is_dead_or_dying(){
+                targetable_drones.push(d.clone());   
+                //eprintln!("ugly {} chases", ugly.id);
+            }
+        }
+    }
+
+    if targetable_drones.len() > 0 {
+        eprintln!("ugly {} chases", ugly.id);
+        let closest_targets = get_closest_to(ugly.pos, &mut targetable_drones.iter());
         ugly.target = closest_targets.get_mean_pos();
         //for drone in closest_targets.list.iter() {
         //     self.times_aggroed[drone.owner.get_index()] += 1;
@@ -124,7 +132,7 @@ impl Game {
 
 
     pub const DRONES_PER_PLAYER: i32 = 1;
-    pub const ENABLE_UGLIES: bool = false;
+    pub const ENABLE_UGLIES: bool = true;
     pub const FISH_WILL_FLEE: bool = true;
     pub const FISH_WILL_MOVE: bool = true;
     pub const SIMPLE_SCANS: bool = true;
@@ -266,7 +274,7 @@ impl Game {
             idx_idx += 1;
             for player in &mut self.players {
                 let mut drone = Drone::new(x as f64, Game::DRONE_START_Y as f64, self.entity_count, &player);
-
+                drone.move_command = Some(Vector::new(10000.0, 10000.0));
                 if player.get_index() == 1 {
                     drone.pos = drone.pos.hsymmetric(Game::CENTER.x);
                 }
@@ -359,10 +367,12 @@ impl Game {
         let uglies_clone = self.uglies.clone(); 
         for ugly in self.uglies.iter_mut() {
             if let Some(target) = ugly.target {
-                let attack_vec = Vector::from_points(ugly.pos, target);
+                eprintln!("uglyka {} chases", ugly.id);
+                let mut attack_vec = Vector::from_points(ugly.pos, target);
                 if attack_vec.length() > Game::UGLY_ATTACK_SPEED as f64 {
-                    ugly.speed = attack_vec.normalize().mult(Game::UGLY_ATTACK_SPEED as f64).round();
+                    attack_vec = attack_vec.normalize().mult(Game::UGLY_ATTACK_SPEED as f64).round();
                 }
+                ugly.speed = attack_vec;
             } else {
                 if ugly.speed.length() > Game::UGLY_SEARCH_SPEED as f64 {
                     ugly.speed = ugly.speed.normalize().mult(Game::UGLY_SEARCH_SPEED as f64).round();

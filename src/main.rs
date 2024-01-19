@@ -127,20 +127,47 @@ fn main() {
             let creature_vx = parse_input!(inputs[3], i32);
             let creature_vy = parse_input!(inputs[4], i32);
             line_index += 1;
-            let f = g.fishes.iter().find(|f| f.id == creature_id).unwrap();
-            if f.id == 9 {
-                 eprintln!("..................................");
-                 eprintln!("speed: {} {}",creature_vx, creature_vy);
-                 eprintln!("pos: {} {}", creature_x,creature_y);
+            
+            eprintln!("find creat {}", creature_id);
+            if creature_id < 14 {
+                let f_find = g.fishes.iter().find(|f| f.id == creature_id);
+                
+                assert!(f_find.is_some());
+                let f = f_find.unwrap();
+                
+                /*if f.id == 9 {
+                     eprintln!("..................................");
+                     eprintln!("speed: {} {}",creature_vx, creature_vy);
+                     eprintln!("pos: {} {}", creature_x,creature_y);
 
-                 eprintln!("speed: {} {}", f.speed.x, f.speed.y);
-                 eprintln!("pos: {} {}", f.get_x(), f.get_y());
-                 eprintln!("..................................");
-            }
+                     eprintln!("speed: {} {}", f.speed.x, f.speed.y);
+                     eprintln!("pos: {} {}", f.get_x(), f.get_y());
+                     eprintln!("..................................");
+                }*/
 
            
-            assert_eq!(f.get_x() as i32, creature_x,  "fish {} kaka", creature_id);
-            assert_eq!(f.get_y() as i32, creature_y,  "fish {} kaka", creature_id);
+                assert_eq!(f.get_x() as i32, creature_x,  "fish {} kaka", creature_id);
+                assert_eq!(f.get_y() as i32, creature_y,  "fish {} kaka", creature_id);
+            } else {
+                let f_find = g.uglies.iter().find(|f| f.id == creature_id);
+                assert!(f_find.is_some());
+                let f = f_find.unwrap();
+
+                if f.id == 15 {
+                        eprintln!("..................................");
+                        eprintln!("speed: {} {}",creature_vx, creature_vy);
+                        eprintln!("pos: {} {}", creature_x,creature_y);
+
+                        eprintln!("speed: {} {}", f.speed.x, f.speed.y);
+                        eprintln!("pos: {} {}", f.get_x(), f.get_y());
+                        eprintln!("..................................");
+                }
+
+           
+                assert_eq!(f.speed.x as i32, creature_vx,  "ugly {} kaka", creature_id);
+                assert_eq!(f.speed.y as i32, creature_vy,  "ugly {} kaka", creature_id);
+            
+            }
         }
 
         let radar_blip_count = parse_input!(lines[line_index], i32);
