@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use rand::prelude::*;
 
-use crate::{ugly::*, fish::*, player::*, scan::*, vector::*, collision::*, entity::*, drone::*, closest::* };
+use crate::{ugly::*, fish::*, player::*, scan::*, vector::*, collision::*, entity::*, drone::*, closest::*, xorshift::xorshift };
 
 // Assuming you already have the necessary structs and enums from previous translations
 
@@ -32,30 +32,30 @@ fn update_ugly_target(ugly: &mut Ugly, players: &[Player]) -> bool {
 
 
 fn snap_to_ugly_zone(ugly: &mut Ugly) {
-    if ugly.pos.y > Game::HEIGHT - 1.0 {
-        ugly.pos.y = Game::HEIGHT - 1.0;
+    if ugly.pos.y > Game::HEIGHT as f64 - 1.0 {
+        ugly.pos.y = Game::HEIGHT as f64 - 1.0;
     } else if ugly.pos.y < Game::UGLY_UPPER_Y_LIMIT {
         ugly.pos.y = Game::UGLY_UPPER_Y_LIMIT;
     }
 }
 
 fn snap_to_drone_zone(drone: &mut Drone) {
-    if drone.pos.y > Game::HEIGHT - 1.0 {
-        drone.pos = Vector::new(drone.pos.x, Game::HEIGHT - 1.0);
+    if drone.pos.y > Game::HEIGHT as f64 - 1.0 {
+        drone.pos = Vector::new(drone.pos.x, Game::HEIGHT as f64 - 1.0);
     } else if drone.pos.y < Game::DRONE_UPPER_Y_LIMIT as f64 {
         drone.pos = Vector::new(drone.pos.x, Game::DRONE_UPPER_Y_LIMIT as f64);
     }
 
     if drone.pos.x < 0.0 {
         drone.pos = Vector::new(0.0, drone.pos.y);
-    } else if drone.pos.x >= Game::WIDTH {
-        drone.pos = Vector::new( Game::WIDTH - 1.0, drone.pos.y);
+    } else if drone.pos.x >= Game::WIDTH as f64 {
+        drone.pos = Vector::new( Game::WIDTH as f64 - 1.0, drone.pos.y);
     }
 }
 
 fn snap_to_fish_zone(fish: &mut Fish) {
-    if fish.pos.y > (Game::HEIGHT - 1.0) as f64 {
-        fish.pos = Vector::new(fish.pos.x, (Game::HEIGHT - 1.0) as f64);
+    if fish.pos.y > (Game::HEIGHT as f64 - 1.0) as f64 {
+        fish.pos = Vector::new(fish.pos.x, (Game::HEIGHT as f64 - 1.0) as f64);
     } else if fish.pos.y > fish.high_y as f64 {
         fish.pos = Vector::new(fish.pos.x, fish.high_y as f64);
     } else if fish.pos.y < fish.low_y as f64 {
@@ -66,7 +66,7 @@ fn snap_to_fish_zone(fish: &mut Fish) {
 
 #[derive(Debug)]
 pub struct Game {
-    random: rand::prelude::ThreadRng,
+    random: xorshift,
     pub players: Vec<Player>,
     pub fishes: Vec<Fish>,
     pub uglies: Vec<Ugly>,
@@ -90,8 +90,8 @@ pub struct Game {
 
 impl Game {
     pub const COLORS: [&'static str; 4] = ["pink", "yellow", "green", "blue"];
-    pub const WIDTH: f64 = 10000.0;
-    pub const HEIGHT: f64 = 10000.0;
+    pub const WIDTH: i32 = 10000;
+    pub const HEIGHT: i32 = 10000;
     pub const UGLY_UPPER_Y_LIMIT: f64 = 2500.0;
     pub const DRONE_UPPER_Y_LIMIT: f64 = 0.0;
     pub const DRONE_START_Y: f64 = 500.0;
@@ -117,14 +117,14 @@ impl Game {
     pub const FISH_X_SPAWN_LIMIT: f64 = 1000.0;
     pub const FISH_SPAWN_MIN_SEP: f64 = 1000.0;
     pub const CENTER: Vector = Vector {
-        x: (Game::WIDTH - 1.0) as f64 / 2.0,
-        y: (Game::HEIGHT - 1.0) as f64 / 2.0,
+        x: (Game::WIDTH as f64 - 1.0) as f64 / 2.0,
+        y: (Game::HEIGHT as f64 - 1.0) as f64 / 2.0,
     };
     pub const MAX_TURNS: i32 = 201;
 
 
-    pub const DRONES_PER_PLAYER: i32 = 2;
-    pub const ENABLE_UGLIES: bool = true;
+    pub const DRONES_PER_PLAYER: i32 = 1;
+    pub const ENABLE_UGLIES: bool = false;
     pub const FISH_WILL_FLEE: bool = false;
     pub const FISH_WILL_MOVE: bool = true;
     pub const SIMPLE_SCANS: bool = true;
@@ -133,7 +133,7 @@ impl Game {
 
     pub fn new() -> Game {
         let mut ret = Game {
-            random: rand::prelude::ThreadRng::default(),
+            random: xorshift::new(69),
             players: vec![Player::new(); 2],
             fishes: Vec::new(),
             uglies: Vec::new(),
@@ -160,7 +160,7 @@ impl Game {
 
     pub fn init(&mut self) {
         self.entity_count = 0;
-        self.random =rand::thread_rng();
+
         self.game_turn = 1;
         self.init_players();
         self.init_fish();
@@ -173,14 +173,13 @@ impl Game {
         }
     }
 
-
     fn init_uglies(&mut self) {
-        let ugly_count = if Game::ENABLE_UGLIES { 1 + self.random.gen::<u32>() % 3 } else { 0 };
+        let ugly_count = if Game::ENABLE_UGLIES { 1 + self.random.next_in_range(3) } else { 0 };
 
         for _ in 0..ugly_count {
-            let x = self.random.gen::<u32>() % (Game::WIDTH / 2.0) as u32;
+            let x = self.random.next_in_range((Game::WIDTH / 2) as i32)  as u32;
 
-            let y = (Game::HEIGHT / 2.0) as u32 + self.random.gen::<u32>() % (Game::HEIGHT / 2.0) as u32;
+            let y = (Game::HEIGHT / 2) as u32 +self.random.next_in_range((Game::HEIGHT / 2) as i32) as u32;
             for k in 0..2 {
                 let mut ugly = Ugly::new(x as f64, y as f64, self.entity_count);
                 if k == 1 {
@@ -202,26 +201,26 @@ impl Game {
                 let mut x = 0;
                 let mut y = 0;
 
-                let mut low_y = (Game::HEIGHT / 4.0) as i32;
+                let mut low_y = (Game::HEIGHT / 4) as i32;
                 let mut high_y = Game::HEIGHT as i32;
 
                 while !position_found {
-                    x = self.random.gen::<u32>() % (Game::WIDTH - Game::FISH_X_SPAWN_LIMIT * 2.0) as u32 + Game::FISH_X_SPAWN_LIMIT as u32;
-                    eprintln!("{}", (Game::WIDTH - Game::FISH_X_SPAWN_LIMIT * 2.0));
+                    x = self.random.next_in_range((Game::WIDTH - Game::FISH_X_SPAWN_LIMIT as i32 * 2) as i32) as u32 + Game::FISH_X_SPAWN_LIMIT as u32;
+                    eprintln!("{}", (Game::WIDTH as f64 - Game::FISH_X_SPAWN_LIMIT * 2.0));
                     if type_idx == 0 {
-                        y = (1.0 * Game::HEIGHT / 4.0) as i32 + Game::FISH_SPAWN_MIN_SEP as i32;
-                        low_y = (1.0 * Game::HEIGHT / 4.0) as i32;
-                        high_y = (2.0 * Game::HEIGHT / 4.0) as i32;
+                        y = (1.0 * Game::HEIGHT as f64 / 4.0) as i32 + Game::FISH_SPAWN_MIN_SEP as i32;
+                        low_y = (1.0 * Game::HEIGHT as f64 / 4.0) as i32;
+                        high_y = (2.0 * Game::HEIGHT as f64 / 4.0) as i32;
                     } else if type_idx == 1 {
-                        y = (2.0 * Game::HEIGHT / 4.0) as i32 + Game::FISH_SPAWN_MIN_SEP as i32;
-                        low_y = (2.0 * Game::HEIGHT / 4.0) as i32;
-                        high_y = (3.0 * Game::HEIGHT / 4.0) as i32
+                        y = (2.0 * Game::HEIGHT as f64 / 4.0) as i32 + Game::FISH_SPAWN_MIN_SEP as i32;
+                        low_y = (2.0 * Game::HEIGHT as f64 / 4.0) as i32;
+                        high_y = (3.0 * Game::HEIGHT as f64 / 4.0) as i32
                     } else {
-                        y = (3.0 * Game::HEIGHT / 4.0) as i32 + Game::FISH_SPAWN_MIN_SEP as i32;
-                        low_y = (3.0 * Game::HEIGHT / 4.0) as i32;
-                        high_y = (4.0 * Game::HEIGHT / 4.0) as i32;
+                        y = (3.0 * Game::HEIGHT as f64 / 4.0) as i32 + Game::FISH_SPAWN_MIN_SEP as i32;
+                        low_y = (3.0 * Game::HEIGHT as f64 / 4.0) as i32;
+                        high_y = (4.0 * Game::HEIGHT as f64 / 4.0) as i32;
                     }
-                    y += (self.random.gen::<u32>() % (Game::HEIGHT / 4.0 - Game::FISH_SPAWN_MIN_SEP * 2.0) as u32) as i32;
+                    y += (self.random.next_in_range((Game::HEIGHT / 4 - Game::FISH_SPAWN_MIN_SEP as i32 * 2) as i32) as u32) as i32;
 
                     let final_x = x;
                     let final_y = y;
@@ -234,7 +233,7 @@ impl Game {
                 }
                 let mut f = Fish::new(x as f64, y as f64, &FishType::variants()[type_idx], col, self.entity_count, low_y, high_y);
 
-                let snapped = (self.random.gen::<u32>() % 7) as f64 * std::f64::consts::FRAC_PI_4;
+                let snapped = (self.random.next_in_range(7)) as f64 * std::f64::consts::FRAC_PI_4;
                 let direction = Vector::new(snapped.cos(), snapped.sin());
 
                 if Game::FISH_WILL_MOVE {
@@ -263,7 +262,7 @@ impl Game {
         let idxs = [0, 2, 1, 3];
         let mut idx_idx = 0;
         for _ in 0..Game::DRONES_PER_PLAYER {
-            let x = Game::WIDTH / (Game::DRONES_PER_PLAYER as f64 * 2.0 + 1.0) * (idxs[idx_idx] as f64 + 1.0);
+            let x = Game::WIDTH / (Game::DRONES_PER_PLAYER * 2 + 1) * (idxs[idx_idx] + 1);
             idx_idx += 1;
             for player in &mut self.players {
                 let mut drone = Drone::new(x as f64, Game::DRONE_START_Y as f64, self.entity_count, &player);
@@ -328,7 +327,7 @@ impl Game {
         // Remove fishes that went out of bounds
         let fish_to_remove: Vec<i32> =  self.fishes
             .iter()
-            .filter(|fish| fish.get_pos().x > Game::WIDTH - 1.0 || fish.get_pos().x < 0.0)
+            .filter(|fish| fish.get_pos().x > Game::WIDTH as f64 - 1.0 || fish.get_pos().x < 0.0)
             .map(|f| f.id)
             .collect();
 
@@ -348,8 +347,8 @@ impl Game {
     }
 
     fn snap_to_ugly_zone(ugly: &mut Ugly) {
-        if ugly.pos.y > Game::HEIGHT - 1.0 {
-            ugly.pos = Vector::new(ugly.pos.x, Game::HEIGHT - 1.0);
+        if ugly.pos.y > Game::HEIGHT as f64 - 1.0 {
+            ugly.pos = Vector::new(ugly.pos.x, Game::HEIGHT as f64 - 1.0);
         } else if ugly.pos.y < Game::UGLY_UPPER_Y_LIMIT as f64 {
             ugly.pos = Vector::new(ugly.pos.x, Game::UGLY_UPPER_Y_LIMIT as f64);
         }
@@ -382,12 +381,12 @@ impl Game {
 
                 let next_pos = ugly.pos.add(ugly.speed);
 
-                if (next_pos.x < 0.0 && next_pos.x < ugly.pos.x) || (next_pos.x > Game::WIDTH - 1.0 && next_pos.x > ugly.pos.x) {
+                if (next_pos.x < 0.0 && next_pos.x < ugly.pos.x) || (next_pos.x > Game::WIDTH as f64 - 1.0 && next_pos.x > ugly.pos.x) {
                     ugly.speed = ugly.speed.hsymmetric(0.0);
                 }
 
                 if (next_pos.y < Game::UGLY_UPPER_Y_LIMIT as f64 && next_pos.y < ugly.pos.y)
-                    || (next_pos.y > Game::HEIGHT - 1.0 && next_pos.y > ugly.pos.y)
+                    || (next_pos.y > Game::HEIGHT as f64 - 1.0 && next_pos.y > ugly.pos.y)
                 {
                     ugly.speed = ugly.speed.vsymmetric(0.0);
                 }
@@ -449,7 +448,7 @@ impl Game {
                 let next_pos = fish.pos.add(fish.speed);
 
                 if (next_pos.x < 0.0 && next_pos.x < fish.pos.x)
-                    || (next_pos.x > Game::WIDTH - 1.0 && next_pos.x > fish.pos.x)
+                    || (next_pos.x > Game::WIDTH as f64 - 1.0 && next_pos.x > fish.pos.x)
                 {
                     fish.speed = fish.speed.hsymmetric(0.0);
                 }
@@ -485,7 +484,7 @@ impl Game {
                     } else {
                         drone.speed = move_vec.round();
                     }
-                } else if drone.pos.y < Game::HEIGHT - 1.0 {
+                } else if drone.pos.y < Game::HEIGHT as f64 - 1.0 {
                     let sink_vec = Vector::new(0.0, 1.0).mult(Game::DRONE_SINK_SPEED as f64);
                     drone.speed = sink_vec;
                 }

@@ -5,6 +5,9 @@ use ggez::{Context, GameResult};
 use std::thread;
 use std::time::Duration;
 
+
+
+
 use crate::game::Game;
 
 /// White
@@ -40,12 +43,26 @@ impl Viewer {
     }
 }
 
+
+fn get_fish_color_from_value(color_value: i32) -> Color {
+    match color_value {
+        0 => Color::from_rgb(0xF0, 0x96, 0xC8), // Pink
+        1 => Color::from_rgb(0xFF, 0xDC, 0x00), // Yellow
+        2 => Color::from_rgb(0x00, 0xFF, 0x00), // Green
+        3 => Color::from_rgb(0x00, 0x94, 0xFF), // Blue
+        _ => WHITE, // Default to white for unknown values
+    }
+}
+
 impl event::EventHandler for Viewer {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+
+
+
         graphics::clear(ctx, BLACK);
         eprintln!("{} {}",self.game.fishes[0].get_x(), self.game.fishes[0].get_y());
         for f in &self.game.fishes {
@@ -56,23 +73,11 @@ impl event::EventHandler for Viewer {
                 na::Point2::new((f.get_x() / 10.0) as f32, (f.get_y() / 10.0 ) as f32),
                 15.0,
                 1.0,
-                WHITE,
+                get_fish_color_from_value(f.color),
             )?;
             graphics::draw(ctx, &circle, DrawParam::default())?;      
         }
         
-        for f in &self.game.fishes {
-                // Draw a circle
-            let circle = graphics::Mesh::new_circle(
-                ctx,
-                DrawMode::fill(),
-                na::Point2::new((f.get_x() / 10.0) as f32, (f.get_y() / 10.0 ) as f32),
-                15.0,
-                1.0,
-                WHITE,
-            )?;
-            graphics::draw(ctx, &circle, DrawParam::default())?;      
-        }
 
         for f in &self.game.uglies {
                 // Draw a circle
@@ -100,21 +105,15 @@ impl event::EventHandler for Viewer {
                 )?;
                 graphics::draw(ctx, &circle, DrawParam::default())?;      
             }
-        }
-
-
-        
-        
-
-
-
-        
+        }        
 
         // Draw the text
         //graphics::draw(ctx, &self.text, (na::Point2::new(50.0, 50.0), BLACK))?;
 
         graphics::present(ctx)?;
         self.game.perform_game_update(0);
+
+
         // Sleep for 1000 milliseconds (1 second)
         thread::sleep(Duration::from_millis(300));
         Ok(())

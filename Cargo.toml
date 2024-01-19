@@ -1,11 +1,11 @@
 [package]
-name = "c4-rust-2"
+name = "ppo-rust"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 tch = "0.4"
-rand = "0.8"
+rand = { version = "0.8.5", features = [ "small_rng" ] }
 ggez = "0.5"
 nalgebra = "0.29"
 
