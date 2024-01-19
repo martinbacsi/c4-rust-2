@@ -22,7 +22,7 @@ impl Vector {
 
     pub fn sqr_euclidean_to(&self, other: Vector) -> f64 {
         let dx = self.x - other.x;
-        let dy = self.y - other.x;
+        let dy = self.y - other.y;
         dx * dx + dy * dy
     }
 

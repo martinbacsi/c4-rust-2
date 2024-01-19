@@ -89,8 +89,8 @@ fn main() {
             let emergency = parse_input!(inputs[3], i32);
             let battery = parse_input!(inputs[4], i32);
             line_index += 1;
-            assert_eq!(g.players[0].drones[i].get_x() as i32, drone_x);
-            assert_eq!(g.players[0].drones[i].get_y() as i32, drone_y);
+            assert_eq!(g.players[0].drones[i].get_x() as i32, drone_x, "drone {} kaka", drone_id);
+            assert_eq!(g.players[0].drones[i].get_y() as i32, drone_y, "drone {} kaka", drone_id);
         }
 
         let foe_drone_count = parse_input!(lines[line_index], i32);
@@ -127,11 +127,20 @@ fn main() {
             let creature_vx = parse_input!(inputs[3], i32);
             let creature_vy = parse_input!(inputs[4], i32);
             line_index += 1;
-
             let f = g.fishes.iter().find(|f| f.id == creature_id).unwrap();
-            eprintln!("fisj id{}", f.id);
-            assert_eq!(f.get_x() as i32, creature_x);
-            assert_eq!(f.get_y() as i32, creature_y);
+            if f.id == 9 {
+                 eprintln!("..................................");
+                 eprintln!("speed: {} {}",creature_vx, creature_vy);
+                 eprintln!("pos: {} {}", creature_x,creature_y);
+
+                 eprintln!("speed: {} {}", f.speed.x, f.speed.y);
+                 eprintln!("pos: {} {}", f.get_x(), f.get_y());
+                 eprintln!("..................................");
+            }
+
+           
+            assert_eq!(f.get_x() as i32, creature_x,  "fish {} kaka", creature_id);
+            assert_eq!(f.get_y() as i32, creature_y,  "fish {} kaka", creature_id);
         }
 
         let radar_blip_count = parse_input!(lines[line_index], i32);

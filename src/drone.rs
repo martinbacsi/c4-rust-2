@@ -73,7 +73,7 @@ impl Drone {
     }
 
     pub fn is_engine_on(&self) -> bool {
-        self.speed.x != 0.0 || self.speed.y != 0.0
+        self.move_command.is_some()
     }
 
     pub fn is_light_on(&self) -> bool {

@@ -125,7 +125,7 @@ impl Game {
 
     pub const DRONES_PER_PLAYER: i32 = 1;
     pub const ENABLE_UGLIES: bool = false;
-    pub const FISH_WILL_FLEE: bool = false;
+    pub const FISH_WILL_FLEE: bool = true;
     pub const FISH_WILL_MOVE: bool = true;
     pub const SIMPLE_SCANS: bool = true;
 
@@ -133,7 +133,7 @@ impl Game {
 
     pub fn new() -> Game {
         let mut ret = Game {
-            random: xorshift::new(69),
+            random: xorshift::new(420),
             players: vec![Player::new(); 2],
             fishes: Vec::new(),
             uglies: Vec::new(),
@@ -434,23 +434,27 @@ impl Game {
                 fish.speed = flee_vec.round();
                 fish.is_fleeing = true;
             } else {
-                let swim_vec = fish.speed.normalize().mult(Game::FISH_SWIM_SPEED as f64);
+                let mut swim_vec = fish.speed.normalize().mult(Game::FISH_SWIM_SPEED as f64);
                 //TODO REMOVE CLONE
                 
                 let closest_fishes = get_closest_to(fish.pos, fishes_copy.iter().filter(|f| f.id != fish.id));
 
                 if !closest_fishes.list.is_empty() && closest_fishes.distance <= Game::FISH_AVOID_RANGE as f64 {
+                    eprintln!(" fish {} collided  with {}", fish.id, closest_fishes.get().unwrap().id);
+                    eprintln!("distance: {}, calc distance: {}", closest_fishes.distance,  fish.pos.distance( closest_fishes.get().unwrap().pos));
+                   
+                    eprintln!("{} {} {} {}", fish.pos.x, fish.pos.y , closest_fishes.get().unwrap().pos.x, closest_fishes.get().unwrap().pos.y);
                     let avoid = closest_fishes.get_mean_pos().unwrap();
                     let avoid_dir = Vector::from_points(avoid, fish.pos).normalize();
-                    fish.speed = avoid_dir.mult(Game::FISH_SWIM_SPEED as f64);
+                    swim_vec = avoid_dir.mult(Game::FISH_SWIM_SPEED as f64);
                 }
 
-                let next_pos = fish.pos.add(fish.speed);
+                let next_pos = fish.pos.add(swim_vec);
 
                 if (next_pos.x < 0.0 && next_pos.x < fish.pos.x)
                     || (next_pos.x > Game::WIDTH as f64 - 1.0 && next_pos.x > fish.pos.x)
                 {
-                    fish.speed = fish.speed.hsymmetric(0.0);
+                    swim_vec = swim_vec.hsymmetric(0.0);
                 }
 
                 let y_highest = f64::min(Game::HEIGHT as f64 - 1.0, fish.high_y as f64);
@@ -458,9 +462,9 @@ impl Game {
                 if (next_pos.y < fish.low_y as f64 && next_pos.y < fish.pos.y)
                     || (next_pos.y > y_highest && next_pos.y > fish.pos.y)
                 {
-                    fish.speed = fish.speed.vsymmetric(0.0);
+                    swim_vec = swim_vec.vsymmetric(0.0);
                 }
-                fish.speed = fish.speed.epsilon_round().round();
+                fish.speed = swim_vec.epsilon_round().round();
             }
         }
     }
