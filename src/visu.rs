@@ -1,78 +1,134 @@
-use minifb::{Key, Window, WindowOptions};
+use ggez::event;
+use ggez::graphics::{self, Color, DrawMode, DrawParam, Font, Text};
+use ggez::nalgebra as na;
+use ggez::{Context, GameResult};
+use std::thread;
+use std::time::Duration;
 
-use crate::csb::CSB_Game;
+use crate::game::Game;
 
-const CP_RAD: f32 = 400.0;
-const POD_RAD: f32 = 200.0;
-pub struct Visualizer {
-    window: Window,
-    buffer: Vec<u32>,
-    width: usize,
-    height: usize,
-    ratio: f32
+/// White
+pub const WHITE: Color = Color {
+    r: 1.0,
+    g: 1.0,
+    b: 1.0,
+    a: 1.0,
+};
+
+/// Black
+pub const BLACK: Color = Color {
+    r: 0.0,
+    g: 0.0,
+    b: 0.0,
+    a: 1.0,
+};
+
+
+
+pub struct Viewer {
+    game: Game,
 }
 
-impl Visualizer {
-    pub fn new(ratio: f32, title: &str) -> Self {
-        let width = (16000.0 / ratio) as usize;
-        let height = (9000.0 / ratio) as usize;
-        let window = Window::new(
-            title,
-            width,
-            height,
-            WindowOptions::default(),
-        ).unwrap_or_else(|e| panic!("Unable to create window: {}", e));
+impl Viewer {
+    fn new(ctx: &mut Context) -> Viewer {
+        //let font = Font::default();
+        //let text = Text::new(("Hello, Rust!", font, 24.0));
 
-        let buffer = vec![0; width * height];
+        Viewer {
+            game: Game::new()
+        } 
+    }
+}
 
-        Visualizer {
-            window,
-            buffer,
-            width,
-            height,
-            ratio
-        }
+impl event::EventHandler for Viewer {
+    fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+        Ok(())
     }
 
-    pub fn draw(&mut self, game: &CSB_Game){
-        let cp_rad_s = (CP_RAD / self.ratio) * (CP_RAD / self.ratio);
-        let pod_rad_s = (POD_RAD / self.ratio) * (POD_RAD / self.ratio);
+    fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
+        graphics::clear(ctx, BLACK);
+        eprintln!("{} {}",self.game.fishes[0].get_x(), self.game.fishes[0].get_y());
+        for f in &self.game.fishes {
+                // Draw a circle
+            let circle = graphics::Mesh::new_circle(
+                ctx,
+                DrawMode::fill(),
+                na::Point2::new((f.get_x() / 10.0) as f32, (f.get_y() / 10.0 ) as f32),
+                15.0,
+                1.0,
+                WHITE,
+            )?;
+            graphics::draw(ctx, &circle, DrawParam::default())?;      
+        }
+        
+        for f in &self.game.fishes {
+                // Draw a circle
+            let circle = graphics::Mesh::new_circle(
+                ctx,
+                DrawMode::fill(),
+                na::Point2::new((f.get_x() / 10.0) as f32, (f.get_y() / 10.0 ) as f32),
+                15.0,
+                1.0,
+                WHITE,
+            )?;
+            graphics::draw(ctx, &circle, DrawParam::default())?;      
+        }
 
-        for y in 0..self.height {
-            for x in 0..self.width {
-                self.buffer[x + y * self.width] =  0x000000;
-                for (i, p) in game.map.iter().enumerate() {
-                    let cx = p.x / self.ratio;
-                    let cy = p.y / self.ratio;
-                    let distance = ((x as isize - cx as isize).pow(2) + (y as isize - cy as isize).pow(2)) as f32;
-                    
-                    if distance < cp_rad_s {
-                        if i  == game.pod.cp % game.map.len() {
-                            self.buffer[x + y * self.width] = 0x00FF00;
-                        } else {
-                            self.buffer[x + y * self.width] = 0x0000FF;
-                        }
-                        break;
-                    }
-                }
+        for f in &self.game.uglies {
+                // Draw a circle
+            let circle = graphics::Mesh::new_circle(
+                ctx,
+                DrawMode::fill(),
+                na::Point2::new((f.get_x() / 10.0) as f32, (f.get_y() / 10.0 ) as f32),
+                20.0,
+                1.0,
+                Color::from_rgb(0xEE, 0x00, 0x00),
+            )?;
+            graphics::draw(ctx, &circle, DrawParam::default())?;      
+        }
 
-                let cx = game.pod.pos.x / self.ratio;
-                let cy = game.pod.pos.y / self.ratio;
-                let distance = ((x as isize - cx as isize).pow(2) + (y as isize - cy as isize).pow(2)) as f32;
-                
-                if distance < pod_rad_s {
-                    self.buffer[x+ y * self.width] = 0xFF0000;
-                }
+        for p in &self.game.players{
+            let player_color = if p.index == 0 { Color::from_rgb(0xff, 0x6d, 0x0a) } else {Color::from_rgb(0x95, 0x2E, 0x8F)};
+            for d in &p.drones{
+                let circle = graphics::Mesh::new_circle(
+                    ctx,
+                    DrawMode::fill(),
+                    na::Point2::new((d.get_x() / 10.0) as f32, (d.get_y() / 10.0 ) as f32),
+                    30.0,
+                    1.0,
+                   player_color
+                )?;
+                graphics::draw(ctx, &circle, DrawParam::default())?;      
             }
         }
-    }
-    pub fn update(&mut self) {
-        self.window
-        .update_with_buffer(&self.buffer, self.width, self.height)
-        .unwrap();
-    }
 
-    pub fn is_open(&self) -> bool {
-        self.window.is_open() && !self.window.is_key_down(Key::Escape)
+
+        
+        
+
+
+
+        
+
+        // Draw the text
+        //graphics::draw(ctx, &self.text, (na::Point2::new(50.0, 50.0), BLACK))?;
+
+        graphics::present(ctx)?;
+        self.game.perform_game_update(0);
+        // Sleep for 1000 milliseconds (1 second)
+        thread::sleep(Duration::from_millis(300));
+        Ok(())
     }
+}
+
+
+pub fn run_visu() {
+    let cb = ggez::ContextBuilder::new("my_game", "author")
+        .window_setup(ggez::conf::WindowSetup::default().title("My Rust Game"))
+        .window_mode(ggez::conf::WindowMode::default().dimensions(1000.0, 1000.0));
+
+    let (ctx, event_loop) = &mut cb.build().unwrap();
+    let state = &mut Viewer::new(ctx);
+
+    event::run(ctx, event_loop, state);
 }

@@ -21,11 +21,11 @@ impl Ugly {
         }
     }
 
-    fn get_x(&self) -> f64 {
+    pub fn get_x(&self) -> f64 {
         self.pos.x
     }
 
-    fn get_y(&self) -> f64 {
+    pub fn get_y(&self) -> f64 {
         self.pos.y
     }
 }

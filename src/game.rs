@@ -20,8 +20,8 @@ fn update_ugly_target(ugly: &mut Ugly, players: &[Player]) -> bool {
     if targetable_drones.peek().is_some() {
         let closest_targets = get_closest_to(ugly.pos, &mut targetable_drones);
         ugly.target = closest_targets.get_mean_pos();
-        // for drone in closest_targets.list.iter() {
-        //     times_aggroed[drone.owner.get_index()] += 1;
+        //for drone in closest_targets.list.iter() {
+        //     self.times_aggroed[drone.owner.get_index()] += 1;
         // }
         true
     } else {
@@ -69,7 +69,7 @@ pub struct Game {
     random: rand::prelude::ThreadRng,
     pub players: Vec<Player>,
     pub fishes: Vec<Fish>,
-    uglies: Vec<Ugly>,
+    pub uglies: Vec<Ugly>,
     first_to_scan: HashMap<Scan, i32>,
     first_to_scan_temp: HashMap<Scan, i32>,
     first_to_scan_all_fish_of_color: HashMap<i32, i32>,
@@ -116,7 +116,6 @@ impl Game {
     pub const UGLY_SEARCH_SPEED: f64 = (Game::UGLY_ATTACK_SPEED as f64 / 2.0) as f64;
     pub const FISH_X_SPAWN_LIMIT: f64 = 1000.0;
     pub const FISH_SPAWN_MIN_SEP: f64 = 1000.0;
-    pub const ALLOW_EMOJI: bool = true;
     pub const CENTER: Vector = Vector {
         x: (Game::WIDTH - 1.0) as f64 / 2.0,
         y: (Game::HEIGHT - 1.0) as f64 / 2.0,
@@ -124,7 +123,7 @@ impl Game {
     pub const MAX_TURNS: i32 = 201;
 
 
-    pub const DRONES_PER_PLAYER: i32 = 1;
+    pub const DRONES_PER_PLAYER: i32 = 2;
     pub const ENABLE_UGLIES: bool = true;
     pub const FISH_WILL_FLEE: bool = false;
     pub const FISH_WILL_MOVE: bool = true;
