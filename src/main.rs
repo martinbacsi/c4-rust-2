@@ -20,6 +20,7 @@ mod xorshift;
 use xorshift::*;
 use visu::run_visu;
 use game::Game;
+use ppo::*;
 
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -36,13 +37,17 @@ fn read_lines_from_file(file_path: &str) -> Vec<String> {
 
 
 fn main() {
+    let mut g = Game::new(69);
+    run_ppo();
+
     let mut xor = xorshift::xorshift::new(69);
     for i in 0..400 {
         eprintln!("{}", xor.next_in_range(420)) ;
     }
     //panic!();
 
-    let mut g = Game::new();
+    
+
     let lines = read_lines_from_file("C://cg23_java//example.txt");
     eprintln!("{}", lines[0]);
     let creature_count = parse_input!(lines[0], i32);

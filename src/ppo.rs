@@ -1,19 +1,22 @@
-use tch::{nn, Device, Tensor, nn::OptimizerConfig, nn::Adam, nn::VarStore, nn::Optimizer};
-
+use tch::{nn, Device, Tensor, nn::OptimizerConfig, nn::Adam, nn::VarStore, nn::Optimizer,};
+use crate::{game::*, vector::Vector};
 
 use crate::csb::CSB_Game;
 use rand::prelude::*;
+use crate::xorshift::*;
 
 const LEARNING_RATE: f64 = 0.0003;
 const GAMMA: f64 = 0.98;
 const EPS_CLIP: f32 = 0.1;
 const K_EPOCH: usize = 3;
 
+const ACTION_SIZE: usize = 16;
+
 struct TrainItem {
-    state: [f32; 11],
+    state: [f32; STATE_SIZE],
     action: f32,
     reward: f32,
-    state_prime: [f32; 11],
+    state_prime: [f32;STATE_SIZE],
     done: f32,
     probability: f32,
 }
@@ -86,32 +89,33 @@ impl PPO {
         let root = &vs.root();
         let actor = Actor 
         {
-            fc0: nn::linear(root / "a_fc0", 11, 16, Default::default()),
-            fc1: nn::linear(root / "a_fc1", 16, 32, Default::default()),
-            fc2: nn::linear(root / "a_fc2", 32,32, Default::default()),
-            fc3: nn::linear(root / "a_fc3", 32, 128, Default::default()),
+            fc0: nn::linear(root / "a_fc0", STATE_SIZE as i64, 128, Default::default()),
+            fc1: nn::linear(root / "a_fc1", 128, 128, Default::default()),
+            fc2: nn::linear(root / "a_fc2", 128,128, Default::default()),
+            fc3: nn::linear(root / "a_fc3", 128, 128, Default::default()),
             fc4: nn::linear(root / "a_fc4", 128, 128, Default::default()),
-            fc_pi: nn::linear(root / "a_fc_pi", 128, 6, Default::default()),
+            fc_pi: nn::linear(root / "a_fc_pi", 128, ACTION_SIZE as i64, Default::default()),
         };
 
         let cricic = Critic 
         {
-            fc0: nn::linear(root / "c_fc0", 11, 16, Default::default()),
-            fc1: nn::linear(root / "c_fc1", 16, 32, Default::default()),
-            fc2: nn::linear(root / "c_fc2", 32,32, Default::default()),
-            fc3: nn::linear(root / "c_fc3", 32, 128, Default::default()),
+            fc0: nn::linear(root / "c_fc0", STATE_SIZE as i64, 128, Default::default()),
+            fc1: nn::linear(root / "c_fc1", 128, 128, Default::default()),
+            fc2: nn::linear(root / "c_fc2", 128, 128, Default::default()),
+            fc3: nn::linear(root / "c_fc3", 128, 128, Default::default()),
             fc4: nn::linear(root / "c_fc4", 128, 128, Default::default()),
             fc_v: nn::linear(root / "c_fc_v", 128, 1, Default::default()),
         };
 
         let optimizer = nn::Adam::default().build(&vs, LEARNING_RATE).unwrap();
      
-        vs.load("model_0.ot").expect("failed to load");
+        //vs.load("model_fish.pt").expect("failed to load");
         
         PPO { actor, cricic, optimizer, data: Vec::new(), vs }
     }
 
-    fn pi(&self, x: &Tensor) -> Tensor {       
+    fn pi(&self, x: &Tensor) -> Tensor {     
+        
         self.actor.run(x)
     } 
 
@@ -125,10 +129,10 @@ impl PPO {
 
     fn make_batch(&mut self) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) {
         let data_len = self.data.len() as i64;
-        let s = Tensor::zeros(&[data_len, 11], (tch::Kind::Float, tch::Device::Cpu));
+        let s = Tensor::zeros(&[data_len, STATE_SIZE as i64], (tch::Kind::Float, tch::Device::Cpu));
         let a = Tensor::zeros(&[data_len, 1], (tch::Kind::Int64, tch::Device::Cpu));
         let r = Tensor::zeros(&[data_len, 1], (tch::Kind::Float, tch::Device::Cpu));
-        let s_prime = Tensor::zeros(&[data_len, 11], (tch::Kind::Float, tch::Device::Cpu));
+        let s_prime = Tensor::zeros(&[data_len, STATE_SIZE as i64], (tch::Kind::Float, tch::Device::Cpu));
         let done_mask = Tensor::zeros(&[data_len, 1], (tch::Kind::Float, tch::Device::Cpu));
         let prob_a = Tensor::zeros(&[data_len, 1], (tch::Kind::Float, tch::Device::Cpu));
         
@@ -143,8 +147,8 @@ impl PPO {
 
             for i in 0..data_len as usize {
                 let v = &self.data[i as usize];
-                for j in 0..11 as usize {
-                    let id = (i * 11 + j) as isize;
+                for j in 0..STATE_SIZE as usize {
+                    let id = (i * STATE_SIZE + j) as isize;
                     *s_data.offset(id)  = v.state[j] as f32;
                     *s_prime_data.offset(id) = v.state_prime[j] as f32;
                 } 
@@ -184,6 +188,7 @@ impl PPO {
             // Initialize advantage.
             let advantage_tensor = Tensor::of_slice(&advantage_list).view([-1]);
             
+           
             let pi = &self.pi(&s);
             let pi_a = pi.gather(1, &a, false);    
             
@@ -196,12 +201,12 @@ impl PPO {
             self.optimizer.zero_grad();
             loss.backward();
             self.optimizer.step();
-            self.vs.save("model_0.ot");
+            self.vs.save("model_fish.pt");
         }
     }
 }
 
-fn categorical_sample(probs: &[f32; 6]) -> usize {
+fn categorical_sample(probs: &[f32; ACTION_SIZE]) -> usize {
     let mut rng = rand::thread_rng();
     let rand_value: f32 = rng.gen_range(0.0..1.0); 
     let mut cumulative_prob = 0.0;
@@ -215,14 +220,13 @@ fn categorical_sample(probs: &[f32; 6]) -> usize {
 }
 
 pub fn run_ppo() {
-      let mut model = PPO::new();
-    let mut probs: [f32; 6] = [0.0; 6];
-    let mut scores: Vec<f64> = Vec::new();
+    let mut model = PPO::new();
+    let mut probs: [f32; ACTION_SIZE] = [0.0; ACTION_SIZE];
 
-    let mut laps: Vec<f64> = Vec::new();
+    let mut rng = xorshift::new(69);
     for n_epi in 0..100000 {
         let mut score = 0.0;
-        let mut env = CSB_Game::new();
+        let mut env = Game::new(rng.next());
         let mut done = false;
         let mut s = env.encode();
        
@@ -230,17 +234,25 @@ pub fn run_ppo() {
         
         while !done {
             turn = turn + 1;
-            
-            let pi = model.pi(&Tensor::of_slice(&s).view([1, 11]));
-         
+            //eprintln!("run pi");
+            //let tr = Tensor::of_slice(&s).transpose(1, STATE_SIZE as i64);
+             //eprintln!("reshaped");
+            let pi = model.pi(&Tensor::of_slice(&s).view([1, 64]));
+            //eprintln!("pi ran");
             unsafe {
                 let pi_ptr = pi.data_ptr() as *const f32;
-                for i in 0..6 {
+                for i in 0..ACTION_SIZE {
                     probs[i] = *pi_ptr.offset(i as isize);
                 }
             }
             let a = categorical_sample(&probs);
-            let (s_prime, r, d) = env.step(a);
+            let light = a % 2 == 0;
+            let angle_index = a / 2;
+            let angle = 2.0 * std::f64::consts::PI * angle_index  as f64 / ((ACTION_SIZE as f64) / 2.0);
+
+            let dir = Vector::new(angle.cos() * 10000.0, angle.sin() * 10000.0);
+            //eprintln!("{} {}", dir.x, dir.y );
+            let (s_prime, r, d) = env.step(env.players[0].drones[0].pos.add(dir), light);
             //println!("{}", a);
             let item = TrainItem {
                state: s,
@@ -254,18 +266,9 @@ pub fn run_ppo() {
             s = s_prime;
             score += r;
             done = d; 
-                    
+           
         }
-        if env.pod.cp > 0 {
-            laps.push(turn as f64 / (env.pod.cp as f64));
-        }
-        scores.push( env.pod.cp  as f64 / (env.map.len() as f64 * 3.0));
-
-        if scores.len() >= 100 {
-            println!("iter:{}. score: {}, laptime: {}", n_epi, scores.iter().sum::<f64>() / scores.len() as f64, laps.iter().sum::<f64>() / laps.len() as f64);
-            scores.clear();
-            laps.clear();
-        }
+        eprintln!("score: {}, turns: {}", env.score(0), turn);      
             
         model.train_net();
     }

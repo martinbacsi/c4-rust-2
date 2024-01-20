@@ -5,8 +5,11 @@ use crate::{ugly::*, fish::*, player::*, scan::*, vector::*, collision::*, entit
 
 // Assuming you already have the necessary structs and enums from previous translations
 
-
-
+pub const INPUT_PER_FISH: usize = 5;
+pub const INPUT_PER_DRONE: usize = 2;
+pub const STATE_SIZE: usize =  INPUT_PER_FISH * 12 + 4 * 1;
+//12 * fish x,y,vx,vy,available
+    //2* drone x, y, vx, vy
 
 fn update_ugly_target(ugly: &mut Ugly, players: &[Player]) -> bool {
     let mut targetable_drones = Vec::new();
@@ -15,7 +18,7 @@ fn update_ugly_target(ugly: &mut Ugly, players: &[Player]) -> bool {
         for d in &p.drones {
             //assert!(!d.is_dead_or_dying());
             //assert!(!d.is_light_on());
-            eprintln!("{}", d.pos.distance(ugly.pos));
+            //eprintln!("{}", d.pos.distance(ugly.pos));
             if d.pos.in_range(&ugly.pos, if d.is_light_on() { Game::LIGHT_SCAN_RANGE } else { Game::DARK_SCAN_RANGE })
                 && !d.is_dead_or_dying(){
                 targetable_drones.push(d.clone());   
@@ -25,7 +28,7 @@ fn update_ugly_target(ugly: &mut Ugly, players: &[Player]) -> bool {
     }
 
     if targetable_drones.len() > 0 {
-        eprintln!("ugly {} chases", ugly.id);
+        //eprintln!("ugly {} chases", ugly.id);
         let closest_targets = get_closest_to(ugly.pos, &mut targetable_drones.iter());
         ugly.target = closest_targets.get_mean_pos();
         //for drone in closest_targets.list.iter() {
@@ -132,16 +135,16 @@ impl Game {
 
 
     pub const DRONES_PER_PLAYER: i32 = 1;
-    pub const ENABLE_UGLIES: bool = true;
+    pub const ENABLE_UGLIES: bool = false;
     pub const FISH_WILL_FLEE: bool = true;
     pub const FISH_WILL_MOVE: bool = true;
     pub const SIMPLE_SCANS: bool = true;
 
     
 
-    pub fn new() -> Game {
+    pub fn new(seed: i64) -> Game {
         let mut ret = Game {
-            random: xorshift::new(420),
+            random: xorshift::new(seed),
             players: vec![Player::new(); 2],
             fishes: Vec::new(),
             uglies: Vec::new(),
@@ -214,7 +217,7 @@ impl Game {
 
                 while !position_found {
                     x = self.random.next_in_range((Game::WIDTH - Game::FISH_X_SPAWN_LIMIT as i32 * 2) as i32) as u32 + Game::FISH_X_SPAWN_LIMIT as u32;
-                    eprintln!("{}", (Game::WIDTH as f64 - Game::FISH_X_SPAWN_LIMIT * 2.0));
+                    //eprintln!("{}", (Game::WIDTH as f64 - Game::FISH_X_SPAWN_LIMIT * 2.0));
                     if type_idx == 0 {
                         y = (1.0 * Game::HEIGHT as f64 / 4.0) as i32 + Game::FISH_SPAWN_MIN_SEP as i32;
                         low_y = (1.0 * Game::HEIGHT as f64 / 4.0) as i32;
@@ -367,7 +370,7 @@ impl Game {
         let uglies_clone = self.uglies.clone(); 
         for ugly in self.uglies.iter_mut() {
             if let Some(target) = ugly.target {
-                eprintln!("uglyka {} chases", ugly.id);
+                //eprintln!("uglyka {} chases", ugly.id);
                 let mut attack_vec = Vector::from_points(ugly.pos, target);
                 if attack_vec.length() > Game::UGLY_ATTACK_SPEED as f64 {
                     attack_vec = attack_vec.normalize().mult(Game::UGLY_ATTACK_SPEED as f64).round();
@@ -450,10 +453,10 @@ impl Game {
                 let closest_fishes = get_closest_to(fish.pos, fishes_copy.iter().filter(|f| f.id != fish.id));
 
                 if !closest_fishes.list.is_empty() && closest_fishes.distance <= Game::FISH_AVOID_RANGE as f64 {
-                    eprintln!(" fish {} collided  with {}", fish.id, closest_fishes.get().unwrap().id);
-                    eprintln!("distance: {}, calc distance: {}", closest_fishes.distance,  fish.pos.distance( closest_fishes.get().unwrap().pos));
+                    //eprintln!(" fish {} collided  with {}", fish.id, closest_fishes.get().unwrap().id);
+                    //eprintln!("distance: {}, calc distance: {}", closest_fishes.distance,  fish.pos.distance( closest_fishes.get().unwrap().pos));
                    
-                    eprintln!("{} {} {} {}", fish.pos.x, fish.pos.y , closest_fishes.get().unwrap().pos.x, closest_fishes.get().unwrap().pos.y);
+                    //eprintln!("{} {} {} {}", fish.pos.x, fish.pos.y , closest_fishes.get().unwrap().pos.x, closest_fishes.get().unwrap().pos.y);
                     let avoid = closest_fishes.get_mean_pos().unwrap();
                     let avoid_dir = Vector::from_points(avoid, fish.pos).normalize();
                     swim_vec = avoid_dir.mult(Game::FISH_SWIM_SPEED as f64);
@@ -612,6 +615,7 @@ impl Game {
                             if !drone.scans.contains(&scan) {
                                 drone.scans.insert(scan);
                                 drone.fishes_scanned_this_turn.insert(fish.id);
+                                //eprintln!("scanned{}", fish.id);
                             }
                         }
                     }
@@ -719,12 +723,12 @@ impl Game {
         }
 
         for (player_name, player_scans) in player_scans_map {
-            let summary_string = player_scans.iter()
-                .map(|scan| scan.fish_id.to_string())
-                .collect::<Vec<String>>()
-                .join(", ");
+            //let summary_string = player_scans.iter()
+            //    .map(|scan| scan.fish_id.to_string())
+            //    .collect::<Vec<String>>()
+            //    .join(", ");
         
-            if player_scans.len() == 1 {
+            /*if player_scans.len() == 1 {
                 eprintln!("{} was the first to save the scan of creature {}", player_name, summary_string);
             } else {
                 eprintln!(
@@ -732,17 +736,17 @@ impl Game {
                         player_name, 
                         player_scans.len(), 
                         summary_string);
-            }
+            }*/
         }
 
         for (fish_type, &player_index) in &self.first_to_scan_all_fish_of_type_temp {
             self.first_to_scan_all_fish_of_type.entry(*fish_type).or_insert(player_index);
-            eprintln!("player{} scanned all of fish type{}", player_index, *fish_type as usize);
+            //eprintln!("player{} scanned all of fish type{}", player_index, *fish_type as usize);
         }
 
         for (color, &player_index) in &self.first_to_scan_all_fish_of_color_temp {
             self.first_to_scan_all_fish_of_color.entry(*color).or_insert(player_index);
-            eprintln!("player{} scanned all of fish color{}", player_index, Game::COLORS[*color as usize]);
+            //eprintln!("player{} scanned all of fish color{}", player_index, Game::COLORS[*color as usize]);
         }
 
         self.first_to_scan_temp.clear();
@@ -799,42 +803,57 @@ impl Game {
         true
     }
 
-    fn compute_max_player_score(&self,  player_index: usize) -> i32 {
+    pub fn compute_max_player_score(&self,  player_index: usize) -> i32 {
+        let scanned = -1;
         let mut total = self.compute_player_score(player_index);
-        let p2 = &self.players[1 - player_index];
+       
+        
 
+        /*eprintln!("calc max........................{}",  self.players[player_index].scans.len());
+        eprintln!("player score: {}", total );
+        for s in &self.players[player_index].scans {
+            assert!(self.player_scanned_scan(player_index, &s)); 
+            eprintln!("player scanned {} {}", s.color, s.fish_type as i32)
+
+        }*/
         for color in 0..Game::COLORS_PER_FISH {
             for fish_type in FishType::variants() {
                 let scan = Scan::new_from_type_color(*fish_type, color);
                 if !self.player_scanned_scan(player_index, &scan) {
+                    //eprintln!("not scanned{} {}", color, *fish_type as i32);
                     if self.is_fish_scanned_by_player_drone(&scan, player_index) || !self.has_fish_escaped(&scan) {
-                        total += *fish_type as i32 + 1;
-                        if self.first_to_scan.get(&scan).map_or(true, |&val| val == -1) {
-                            total += *fish_type as i32 + 1;
+                        //eprintln!("fish type: {}", (*fish_type as i32 + 1));
+                        total += (*fish_type as i32 + 1);
+                        //eprintln!("{}", total);
+                        if !self.first_to_scan.contains_key(&scan) {
+                            total += (*fish_type as i32 + 1);
+                            //eprintln!("{}", total);
                         }
                     }
                 }
+                else {
+                    //eprint!("player scanned {} {}", scan.color, scan.fish_type as i32)
+                }
             }
         }
-
+       
         for fish_type in FishType::variants() {
             if self.is_type_combo_still_possible(player_index, &fish_type) {
                 total += Game::COLORS_PER_FISH as i32;
-                if self.first_to_scan_all_fish_of_type.get(&fish_type).map_or(true, |&val| val != p2.get_index()) {
+                if !self.first_to_scan_all_fish_of_type.contains_key(&fish_type) {
                     total += Game::COLORS_PER_FISH as i32;
                 }
             }
         }
-
         for color in 0..Game::COLORS_PER_FISH {
             if self.is_color_combo_still_possible(player_index, color) {
                 total += FishType::variants().len() as i32;
-                if self.first_to_scan_all_fish_of_color.get(&color).map_or(true, |&val| val != p2.get_index()) {
+                if !self.first_to_scan_all_fish_of_color.contains_key(&color) {
                     total += FishType::variants().len() as i32;
                 }
             }
         }
-
+        assert!(total <= 96);
         total
     }
 
@@ -842,6 +861,7 @@ impl Game {
         if self.both_players_have_scanned_all_remaining_fish() {
             true
         } else {
+            //eprintln!("{} vs {}", self.players[0].points, self.compute_max_player_score(0));
             self.game_turn >= 200
                 || self.compute_max_player_score(0) < self.players[1].points
                 || self.compute_max_player_score(1) < self.players[0].points
@@ -860,16 +880,16 @@ impl Game {
         let mut total = 0;
         for scan in &self.players[player_index].scans {
             total += scan.fish_type as i32 + 1;
-            if self.first_to_scan.get(scan).map_or(false, |&val| val == self.players[player_index].get_index()) {
+            if self.first_to_scan.contains_key(scan) && *self.first_to_scan.get(scan).unwrap() == player_index as i32 {
                 total += scan.fish_type as i32 + 1;
             }
         }
 
         for fish_type in FishType::variants() {
-            if self.player_scanned_all_fish_of_type(self.players[player_index].index as usize, *fish_type) {
+            if self.player_scanned_all_fish_of_type(player_index, *fish_type) {
                 total += Game::COLORS_PER_FISH as i32;
             }
-            if self.first_to_scan_all_fish_of_type.get(&fish_type).map_or(false, |&val| val == self.players[player_index].get_index()) {
+            if self.first_to_scan_all_fish_of_type.contains_key(fish_type) && *self.first_to_scan_all_fish_of_type. get(fish_type).unwrap() == player_index as i32 {
                 total += Game::COLORS_PER_FISH as i32;
             }
         }
@@ -878,7 +898,8 @@ impl Game {
             if self.player_scanned_all_fish_of_color(player_index, color) {
                 total += FishType::variants().len() as i32;
             }
-            if self.first_to_scan_all_fish_of_color.get(&color).map_or(false, |&val| val == player_index as i32) {
+            
+            if self.first_to_scan_all_fish_of_color.contains_key(&color) && *self.first_to_scan_all_fish_of_color. get(&color).unwrap() == player_index as i32 {
                 total += FishType::variants().len() as i32;
             }
         }
@@ -920,6 +941,46 @@ impl Game {
 
     fn has_first_to_scan_all_fish_of_color(&self,player: &Player, color: i32) -> bool {
         self.first_to_scan_all_fish_of_color.get(&color).map_or(-1, |&val| val) == player.get_index()
+    }
+
+    pub fn encode(&self) -> [f32; STATE_SIZE] {
+        let PLAYER_INDEX = 0;
+        let mut inputs: [f32; STATE_SIZE] = [0.0; STATE_SIZE];
+
+        for (i, f) in self.fishes.iter().enumerate() {
+            let is_scanned = self.is_fish_scanned_by_player_drone(&Scan::new_from_type_color(f.fish_type, f.color), PLAYER_INDEX);
+            inputs[i * INPUT_PER_FISH + 0] = (f.get_x() / 10000.0) as f32;
+            inputs[i * INPUT_PER_FISH + 1] = (f.get_y() / 10000.0) as f32;
+            inputs[i * INPUT_PER_FISH + 2] = (f.speed.x / 400.0) as f32;
+            inputs[i * INPUT_PER_FISH + 3] = (f.speed.y / 400.0) as f32;
+            inputs[i * INPUT_PER_FISH + 4] = if is_scanned {1.0} else {0.0};
+        }
+
+
+        for (i, d) in self.players[0].drones.iter().enumerate() {
+            inputs[i * INPUT_PER_DRONE + 0 + INPUT_PER_FISH * 12] = (d.get_x() / 10000.0) as f32;
+            inputs[i * INPUT_PER_DRONE + 1 + INPUT_PER_FISH * 12] = (d.get_y() / 10000.0) as f32;
+        }
+
+        inputs
+    }
+
+    pub fn score(&self, player: usize) -> f32 {
+        if self.compute_max_player_score(1 - player) < self.players[player].points {
+            1.0
+        } else {
+            self.players[player].points as f32 / 96.0
+        }
+    } 
+
+    pub fn step(&mut self, action: Vector, light: bool) -> ([f32; STATE_SIZE], f32, bool){
+        self.players[0].drones[0].move_command = Some(action);
+        self.players[0].drones[0].light_switch = light;
+        let fishes_before  = self.score(0);//self.players[0].drones.iter().map(|d| d.scans.len()).sum();
+        self.perform_game_update(0);
+        let fishes_after  = self.score(0); //self.players[0].drones.iter().map(|d| d.scans.len()).sum();
+        //eprintln!("{}", fishes_after);
+        (self.encode(), (fishes_after - fishes_before), self.is_game_over())
     }
 
     // Add other methods and properties here...

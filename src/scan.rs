@@ -3,9 +3,9 @@ use std::hash::{Hash, Hasher};
 use crate::{fish::*, game::Game};
 // Assuming you already have the FishType and Game structs from the previous examples
 
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Scan {
-    pub fish_id: i32,
     pub fish_type: FishType,
     pub color: i32,
 }
@@ -13,7 +13,6 @@ pub struct Scan {
 impl Scan {
     pub fn new_from_fish(fish: &Fish) -> Scan {
         Scan {
-            fish_id: fish.id,
             fish_type: fish.fish_type.clone(),
             color: fish.color,
         }
@@ -21,13 +20,12 @@ impl Scan {
 
     pub fn new_from_type_color(fish_type: FishType, color: i32) -> Scan {
         Scan {
-            fish_id: -1, // Assuming -1 when not obtained from a specific fish
             fish_type,
             color,
         }
     }
 
-    pub fn to_input_string(&self) -> String {
-        self.fish_id.to_string()
-    }
+    //pub fn to_input_string(&self) -> String {
+    //    self.fish_id.to_string()
+    //}
 }

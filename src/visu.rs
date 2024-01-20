@@ -38,7 +38,7 @@ impl Viewer {
         //let text = Text::new(("Hello, Rust!", font, 24.0));
 
         Viewer {
-            game: Game::new()
+            game: Game::new(59)
         } 
     }
 }
