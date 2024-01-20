@@ -38,6 +38,8 @@ fn read_lines_from_file(file_path: &str) -> Vec<String> {
 
 fn main() {
     let mut g = Game::new(69);
+    
+    //run_visu();
     run_ppo();
 
     let mut xor = xorshift::xorshift::new(69);

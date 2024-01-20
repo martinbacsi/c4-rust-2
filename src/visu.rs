@@ -4,11 +4,11 @@ use ggez::nalgebra as na;
 use ggez::{Context, GameResult};
 use std::thread;
 use std::time::Duration;
+use crate::ppo::*;
+use tch::{nn, Device, Tensor,};
 
 
-
-
-use crate::game::Game;
+use crate::game::*;
 
 /// White
 pub const WHITE: Color = Color {
@@ -30,6 +30,7 @@ pub const BLACK: Color = Color {
 
 pub struct Viewer {
     game: Game,
+    ppo: PPO
 }
 
 impl Viewer {
@@ -38,7 +39,8 @@ impl Viewer {
         //let text = Text::new(("Hello, Rust!", font, 24.0));
 
         Viewer {
-            game: Game::new(59)
+            game: Game::new(59),
+            ppo: PPO::new()
         } 
     }
 }
@@ -60,8 +62,14 @@ impl event::EventHandler for Viewer {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-
-
+        let mut s = self.game.encode();
+        let pi = self.ppo.pi(&Tensor::of_slice(&s).view([1, 64]));
+        //let a = pi.argmax(-1, false).int64_value(&[]);
+        let a = categorical_sample(&pi);
+        eprintln!("a: {}", a);
+        let (dir, light ) = decode_action(a as i64);
+        
+        self.game.step(dir, light);
 
         graphics::clear(ctx, BLACK);
         eprintln!("{} {}",self.game.fishes[0].get_x(), self.game.fishes[0].get_y());

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, f32::consts::LN_10};
 use rand::prelude::*;
 
 use crate::{ugly::*, fish::*, player::*, scan::*, vector::*, collision::*, entity::*, drone::*, closest::*, xorshift::xorshift };
@@ -8,8 +8,18 @@ use crate::{ugly::*, fish::*, player::*, scan::*, vector::*, collision::*, entit
 pub const INPUT_PER_FISH: usize = 5;
 pub const INPUT_PER_DRONE: usize = 2;
 pub const STATE_SIZE: usize =  INPUT_PER_FISH * 12 + 4 * 1;
+pub const ACTION_SIZE: usize = 16;
 //12 * fish x,y,vx,vy,available
     //2* drone x, y, vx, vy
+
+pub fn decode_action(a: i64) -> (Vector, bool) {
+    let light = a % 2 == 0;
+    let angle_index = a / 2;
+    let angle = 2.0 * std::f64::consts::PI * angle_index  as f64 / ((ACTION_SIZE as f64) / 2.0);
+    let dir = Vector::new(angle.cos() * 10000.0, angle.sin() * 10000.0);
+   
+    (dir, light)
+}    
 
 fn update_ugly_target(ugly: &mut Ugly, players: &[Player]) -> bool {
     let mut targetable_drones = Vec::new();
@@ -974,8 +984,15 @@ impl Game {
     } 
 
     pub fn step(&mut self, action: Vector, light: bool) -> ([f32; STATE_SIZE], f32, bool){
-        self.players[0].drones[0].move_command = Some(action);
+        self.players[0].drones[0].move_command = Some(self.players[0].drones[0].pos.add(action));
         self.players[0].drones[0].light_switch = light;
+
+        eprintln!("............................");
+        eprintln!("v: {} {}",  self.players[0].drones[0].pos.x,self.players[0].drones[0].pos.y);
+        eprintln!("v: {} {}",  action.x, action.y);
+        eprintln!("v: {} {}",  self.players[0].drones[0].move_command.unwrap().x, self.players[0].drones[0].move_command.unwrap().y);
+
+
         let fishes_before  = self.score(0);//self.players[0].drones.iter().map(|d| d.scans.len()).sum();
         self.perform_game_update(0);
         let fishes_after  = self.score(0); //self.players[0].drones.iter().map(|d| d.scans.len()).sum();
