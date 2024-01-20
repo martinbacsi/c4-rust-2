@@ -5,9 +5,9 @@ use crate::{ugly::*, fish::*, player::*, scan::*, vector::*, collision::*, entit
 
 // Assuming you already have the necessary structs and enums from previous translations
 
-pub const INPUT_PER_FISH: usize = 5;
+pub const INPUT_PER_FISH: usize = 3;
 pub const INPUT_PER_DRONE: usize = 2;
-pub const STATE_SIZE: usize =  INPUT_PER_FISH * 12 + 4 * 1;
+pub const STATE_SIZE: usize =  INPUT_PER_FISH * 12 + Game::DRONES_PER_PLAYER as usize * INPUT_PER_DRONE;
 pub const ACTION_SIZE: usize = 16;
 //12 * fish x,y,vx,vy,available
     //2* drone x, y, vx, vy
@@ -961,9 +961,9 @@ impl Game {
             let is_scanned = self.is_fish_scanned_by_player_drone(&Scan::new_from_type_color(f.fish_type, f.color), PLAYER_INDEX);
             inputs[i * INPUT_PER_FISH + 0] = (f.get_x() / 10000.0) as f32;
             inputs[i * INPUT_PER_FISH + 1] = (f.get_y() / 10000.0) as f32;
-            inputs[i * INPUT_PER_FISH + 2] = (f.speed.x / 400.0) as f32;
-            inputs[i * INPUT_PER_FISH + 3] = (f.speed.y / 400.0) as f32;
-            inputs[i * INPUT_PER_FISH + 4] = if is_scanned {1.0} else {0.0};
+            //inputs[i * INPUT_PER_FISH + 2] = (f.speed.x / 400.0) as f32;
+            //inputs[i * INPUT_PER_FISH + 3] = (f.speed.y / 400.0) as f32;
+            inputs[i * INPUT_PER_FISH + 2] = if is_scanned {1.0} else {0.0};
         }
 
 
@@ -987,10 +987,10 @@ impl Game {
         self.players[0].drones[0].move_command = Some(self.players[0].drones[0].pos.add(action));
         self.players[0].drones[0].light_switch = light;
 
-        eprintln!("............................");
-        eprintln!("v: {} {}",  self.players[0].drones[0].pos.x,self.players[0].drones[0].pos.y);
-        eprintln!("v: {} {}",  action.x, action.y);
-        eprintln!("v: {} {}",  self.players[0].drones[0].move_command.unwrap().x, self.players[0].drones[0].move_command.unwrap().y);
+        //eprintln!("............................");
+        //eprintln!("v: {} {}",  self.players[0].drones[0].pos.x,self.players[0].drones[0].pos.y);
+        //eprintln!("v: {} {}",  action.x, action.y);
+        //eprintln!("v: {} {}",  self.players[0].drones[0].move_command.unwrap().x, self.players[0].drones[0].move_command.unwrap().y);
 
 
         let fishes_before  = self.score(0);//self.players[0].drones.iter().map(|d| d.scans.len()).sum();
